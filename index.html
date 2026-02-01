@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eInvoicer - Login</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #1a73e8; margin-bottom: 8px; }
+        p { color: #5f6368; margin-bottom: 24px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dadce0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 10px; }
+        button:hover { background: #1557b0; }
+        .toggle-link { margin-top: 20px; color: #1a73e8; cursor: pointer; font-size: 14px; text-decoration: none; display: block; }
+        .hidden { display: none; }
+        #loader { display: none; color: #1a73e8; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>eInvoicer</h1>
+    <p id="sub-title">Manage your business invoices</p>
+    
+    <div id="login-section">
+        <input type="email" id="login-email" placeholder="Email Address">
+        <input type="password" id="login-pass" placeholder="Password">
+        <button onclick="handleAuth('login')">Sign In</button>
+        <span class="toggle-link" onclick="toggleForms()">Create an account</span>
+    </div>
+
+    <div id="signup-section" class="hidden">
+        <input type="text" id="reg-name" placeholder="Full Name">
+        <input type="email" id="reg-email" placeholder="Email Address">
+        <input type="password" id="reg-pass" placeholder="Password">
+        <input type="text" id="reg-business" placeholder="Business Name">
+        <button onclick="handleAuth('signup')">Register</button>
+        <span class="toggle-link" onclick="toggleForms()">Already have an account? Login</span>
+    </div>
+
+    <div id="loader">Processing...</div>
+</div>
+
+<script>
+    // PASTE YOUR GOOGLE WEB APP URL HERE
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyN6qkRW2rSX-6s6tRA0O6K4P1T7LRqpRXiQHC0xoDp-saVrIPYHTK1CG_YRjWM-TAU/exec";
+
+    function toggleForms() {
+        document.getElementById('login-section').classList.toggle('hidden');
+        document.getElementById('signup-section').classList.toggle('hidden');
+        document.getElementById('sub-title').innerText = 
+            document.getElementById('login-section').classList.contains('hidden') ? "Join our vendor network" : "Manage your business invoices";
+    }
+
+    async function handleAuth(type) {
+        const loader = document.getElementById('loader');
+        loader.style.display = "block";
+
+        let payload = { action: type };
+
+        if (type === 'signup') {
+            payload.userData = {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-pass').value,
+                business: document.getElementById('reg-business').value
+            };
+        } else {
+            payload.creds = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-pass').value
+            };
+        }
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (type === 'signup' && data === "Success") {
+                alert("Account created! Please login.");
+                toggleForms();
+            } else if (type === 'login' && data.status === "Success") {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                alert("Welcome, " + data.user.name);
+                // Redirect to Dashboard here
+            } else {
+                alert(data.status || data);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Connection Error. Check Console.");
+        } finally {
+            loader.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
