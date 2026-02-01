@@ -38,7 +38,12 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; // PASTE YOUR URL HERE
-
+// 1. AUTO-REDIRECT IF ALREADY LOGGED IN
+window.onload = () => {
+    if (localStorage.getItem("user")) {
+        window.location.href = "dashboard.html";
+    }
+};
 function toggleForm() {
     document.getElementById('loginFields').classList.toggle('hidden');
     document.getElementById('signupFields').classList.toggle('hidden');
@@ -87,7 +92,8 @@ async function doLogin() {
         if (result.status === "Success") {
             localStorage.setItem("user", JSON.stringify(result));
             alert("Success! Welcome " + result.name);
-            // We will trigger the dashboard next
+          // 2. REDIRECT TO DASHBOARD
+            window.location.href = "dashboard.html";
         } else {
             msg.innerText = "❌ Invalid Credentials";
         }
