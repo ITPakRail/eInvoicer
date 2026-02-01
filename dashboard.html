@@ -59,9 +59,10 @@
     <aside>
         <ul>
             <li onclick="showSection('create')">➕ Create Invoice</li>
-            <li onclick="showSection('find')">🔍 Find Invoice</li>
+          
             <li onclick="showSection('view-all')">📄 View All Invoices</li>
             <li onclick="showSection('update')">✏️ Edit or Delete</li>
+              <li onclick="showSection('report')">📊 Reports</li>
         </ul>
     </aside>
 
@@ -136,6 +137,9 @@
         frame.src = "view-all.html";
     } else if(sectionId==='update' ){
         frame.src="update.html";
+    }
+        else if(sectionId==='report' ){
+        frame.src="reports.html";
     }
     else {
         alert("Section: " + sectionId + " is under development.");
