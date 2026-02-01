@@ -71,33 +71,29 @@ async function doLogin() {
     const email = document.getElementById("l_email").value;
     const pass = document.getElementById("l_pass").value;
     const msg = document.getElementById("msg");
-    
     msg.innerText = "Authenticating...";
 
     try {
         const response = await fetch(API_URL, {
             method: "POST",
-            // We removed mode: "no-cors" here to allow reading the response
-            body: JSON.stringify({ 
-                action: "login", 
-                email: email, 
-                password: pass 
-            })
+            headers: {
+                "Content-Type": "text/plain" // Using text/plain avoids some CORS triggers
+            },
+            body: JSON.stringify({ action: "login", email: email, password: pass })
         });
         
         const result = await response.json();
         
         if (result.status === "Success") {
             localStorage.setItem("user", JSON.stringify(result));
-            msg.innerText = "✅ Login Successful!";
-            alert("Welcome " + result.name);
-            // We will build the Invoice Dashboard next!
+            alert("Success! Welcome " + result.name);
+            // We will trigger the dashboard next
         } else {
-            msg.innerText = "❌ Invalid Email or Password";
+            msg.innerText = "❌ Invalid Credentials";
         }
     } catch (error) {
-        console.error(error);
-        msg.innerText = "❌ Connection Error. Make sure you deployed a NEW version of GAS.";
+        msg.innerText = "❌ Connection Error. Open Console (F12) to see details.";
+        console.error("Fetch Error:", error);
     }
 }
 </script>
