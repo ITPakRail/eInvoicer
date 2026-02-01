@@ -83,29 +83,19 @@
         document.getElementById('start-date').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('end-date').value = d.toISOString().split('T')[0];
     };
-
-    async function generateReport() {
+async function generateReport() {
     const btn = document.querySelector('.btn-view');
-    const startVal = document.getElementById('start-date').value;
-    const endVal = document.getElementById('end-date').value;
+    const startVal = document.getElementById('start-date').value; // e.g., "2026-02-01"
+    const endVal = document.getElementById('end-date').value;     // e.g., "2026-02-02"
 
-    if (!startVal || !endVal) return alert("Select dates");
+    if (!startVal || !endVal) return alert("Please select dates");
 
-    btn.innerText = "Loading...";
+    btn.innerText = "Searching...";
     btn.disabled = true;
 
     try {
         const response = await fetch(`${API_URL}?userId=${user.id}`);
         const allData = await response.json();
-        
-        console.log("Raw Data:", allData);
-
-        // Convert picker strings (YYYY-MM-DD) to Date objects
-        const startDate = new Date(startVal);
-        startDate.setHours(0,0,0,0);
-        
-        const endDate = new Date(endVal);
-        endDate.setHours(23,59,59,999);
         
         const tbody = document.getElementById('report-body');
         tbody.innerHTML = "";
@@ -114,20 +104,24 @@
         let revenue = 0;
 
         allData.forEach(inv => {
-            // FIX: Convert the ISO string from Google into a JS Date object
-            const invDate = new Date(inv.date);
+            // 1. Get the date from Google (e.g., "2026-02-01T19:00:00.000Z")
+            // 2. Slice only the first 10 characters: "2026-02-01"
+            let sheetDateClean = "";
+            if (inv.date.includes("T")) {
+                sheetDateClean = inv.date.split("T")[0]; 
+            } else {
+                // If Google sends it as a raw string already
+                sheetDateClean = new Date(inv.date).toISOString().split('T')[0];
+            }
 
-            // Compare time-stamps
-            if (invDate >= startDate && invDate <= endDate) {
+            // 3. Match against the date picker values (which are also YYYY-MM-DD)
+            if (sheetDateClean >= startVal && sheetDateClean <= endVal) {
                 count++;
                 revenue += parseFloat(inv.total || 0);
                 
-                // Format the date for the table display
-                const displayDate = invDate.toLocaleDateString(); 
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${displayDate}</td>
+                    <td>${sheetDateClean}</td>
                     <td><strong>${inv.invoiceId}</strong></td>
                     <td>${inv.clientName}</td>
                     <td style="text-align:right">${parseFloat(inv.total).toFixed(2)}</td>
@@ -138,15 +132,14 @@
 
         document.getElementById('total-count').innerText = count;
         document.getElementById('total-revenue').innerText = revenue.toFixed(2);
-        document.getElementById('report-period').innerText = `Period: ${startVal} to ${endVal}`;
 
         if (count === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found in this date range. Check your search dates!</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found between ${startVal} and ${endVal}</td></tr>`;
         }
 
     } catch (err) {
         console.error("Report Error:", err);
-        alert("Failed to load data.");
+        alert("Error loading data.");
     } finally {
         btn.innerText = "Generate Report";
         btn.disabled = false;
