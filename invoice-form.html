@@ -50,18 +50,19 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
         const user = JSON.parse(localStorage.getItem("user"));
-
-       window.onload = async () => {
+window.onload = async () => {
     document.getElementById("display-date").innerText = new Date().toLocaleDateString();
-    addNewRow(); // Start with first row
+    addNewRow(); 
     
-    // Fetch Next ID from GAS
+    const user = JSON.parse(localStorage.getItem("user"));
+    
+    // Pass the userId to the server so it can find the correct next ID
     try {
-        const response = await fetch(`${API_URL}?action=getNextId`);
+        const response = await fetch(`${API_URL}?action=getNextId&userId=${user.id}`);
         const data = await response.json();
         document.getElementById("display-inv-id").innerText = data.nextId;
     } catch (e) {
-        document.getElementById("display-inv-id").innerText = "INV-1001"; // Fallback
+        document.getElementById("display-inv-id").innerText = "INV-1001";
     }
 };
 
