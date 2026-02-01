@@ -55,17 +55,23 @@ window.onload = async () => {
     addNewRow(); 
     
     const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !user.id) {
+        alert("Session expired. Please login again.");
+        return;
+    }
+
+    // Add &userId= to the URL
+    const fetchUrl = `${API_URL}?action=getNextId&userId=${encodeURIComponent(user.id)}`;
     
-    // Pass the userId to the server so it can find the correct next ID
     try {
-        const response = await fetch(`${API_URL}?action=getNextId&userId=${user.id}`);
+        const response = await fetch(fetchUrl);
         const data = await response.json();
         document.getElementById("display-inv-id").innerText = data.nextId;
     } catch (e) {
+        console.error("ID Fetch Error:", e);
         document.getElementById("display-inv-id").innerText = "INV-1001";
     }
 };
-
         function addNewRow() {
             const tbody = document.getElementById("item-body");
             const tr = document.createElement("tr");
