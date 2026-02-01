@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eInvoicer - MultiVendor Dashboard</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #34495e; --accent: #3498db; --text-light: #ecf0f1; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; height: 100vh; }
+        .hidden { display: none !important; }
+
+        /* AUTH BOX STYLES */
+        #auth-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .auth-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        /* DASHBOARD STYLES */
+        #main-dashboard { display: grid; grid-template-columns: 250px 1fr; grid-template-rows: 60px 1fr 40px; height: 100vh; }
+        header { grid-column: 1 / -1; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        
+        aside { background: var(--secondary); color: white; padding: 20px 0; }
+        aside ul { list-style: none; padding: 0; }
+        aside li { padding: 15px 25px; cursor: pointer; transition: 0.3s; border-bottom: 1px solid #ffffff10; }
+        aside li:hover { background: var(--accent); }
+
+        main { padding: 30px; overflow-y: auto; }
+        .content-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+        footer { grid-column: 1 / -1; background: #ddd; text-align: center; line-height: 40px; font-size: 12px; color: #666; }
+        
+        .user-badge { font-size: 13px; background: #1abc9c; padding: 5px 10px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="auth-container">
+    <div class="auth-card" id="authBox">
+        <h1>eInvoicer</h1>
+        <div id="loginFields">
+            <input type="email" id="l_email" placeholder="Email">
+            <input type="password" id="l_pass" placeholder="Password">
+            <button onclick="doLogin()">Login</button>
+        </div>
+        <p id="msg" style="color: red; font-size: 14px;"></p>
+    </div>
+</div>
+
+<div id="main-dashboard" class="hidden">
+    <header>
+        <div style="font-size: 20px; font-weight: bold;">eInvoicer</div>
+        <div class="user-info">
+            <span class="user-badge" id="display-userid">ID: --</span>
+            <span id="display-username" style="margin-left: 10px;">Welcome, User</span>
+            <button onclick="logout()" style="width: auto; padding: 5px 10px; background: #e74c3c; margin-left: 15px;">Logout</button>
+        </div>
+    </header>
+
+    <aside>
+        <ul>
+            <li onclick="showSection('create')">➕ Create Invoice</li>
+            <li onclick="showSection('find')">🔍 Find Invoice</li>
+            <li onclick="showSection('view-all')">📄 View All Invoices</li>
+            <li onclick="showSection('print')">🖨️ Print Duplicate</li>
+        </ul>
+    </aside>
+
+    <main id="content-area">
+        <div class="content-card" id="welcome-msg">
+            <h2>Dashboard Overview</h2>
+            <p>Select an option from the left menu to get started with your <strong><span id="display-bizname"></span></strong> account.</p>
+        </div>
+        
+        <div id="section-create" class="hidden content-card">
+            <h3>Create New Invoice</h3>
+            <p>Invoice entry form will appear here.</p>
+        </div>
+    </main>
+
+    <footer>
+        Copyrights © <span id="year"></span> eInvoicer | All Rights Reserved
+    </footer>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
+
+    // Set current year in footer
+    document.getElementById('year').innerText = new Date().getFullYear();
+
+    async function doLogin() {
+        const email = document.getElementById("l_email").value;
+        const pass = document.getElementById("l_pass").value;
+        const msg = document.getElementById("msg");
+        msg.innerText = "Checking...";
+
+        const loginUrl = `${API_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`;
+
+        try {
+            const response = await fetch(loginUrl);
+            const result = await response.json();
+            
+            if (result.status === "Success") {
+                localStorage.setItem("user", JSON.stringify(result));
+                setupDashboard(result);
+            } else {
+                msg.innerText = "❌ Invalid Credentials";
+            }
+        } catch (error) {
+            msg.innerText = "❌ Connection Error";
+        }
+    }
+
+    function setupDashboard(user) {
+        document.getElementById("auth-container").classList.add("hidden");
+        document.getElementById("main-dashboard").classList.remove("hidden");
+        
+        // Populate User Data from Google Sheet response
+        document.getElementById("display-userid").innerText = "ID: " + user.id;
+        document.getElementById("display-username").innerText = "Welcome, " + user.name;
+        document.getElementById("display-bizname").innerText = user.business;
+    }
+
+    function showSection(sectionId) {
+        // Simple logic to switch content (We will expand this)
+        alert("Section: " + sectionId + " coming soon!");
+    }
+
+    function logout() {
+        localStorage.removeItem("user");
+        location.reload();
+    }
+
+    // Check if already logged in on page load
+    window.onload = () => {
+        const savedUser = localStorage.getItem("user");
+        if (savedUser) setupDashboard(JSON.parse(savedUser));
+    };
+</script>
+
+</body>
+</html>
