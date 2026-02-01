@@ -83,7 +83,8 @@ async function doLogin() {
         if (result.status === "Success") {
             localStorage.setItem("user", JSON.stringify(result));
             alert("Success! Welcome " + result.name);
-            showDashboard(); // We will build this next
+           // 2. REDIRECT TO DASHBOARD
+            window.location.href = "dashboard.html";
         } else {
             msg.innerText = "❌ Invalid Credentials";
         }
