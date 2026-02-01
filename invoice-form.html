@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: white; }
+        .inv-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #eee; padding: 10px; border: 1px solid #ddd; }
+        td { border: 1px solid #ddd; padding: 5px; }
+        input { width: 95%; border: none; outline: none; padding: 5px; }
+        .btn-save { background: #2e7d32; color: white; padding: 10px 20px; width: 100%; margin-top: 20px; cursor: pointer; border: none; border-radius: 5px; font-size: 16px; }
+        .btn-add { background: #34495e; color: white; padding: 5px 10px; margin-top: 10px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="inv-header">
+        <div><strong>Invoice ID:</strong> <span id="invId">--</span></div>
+        <div><strong>Date:</strong> <span id="invDate">--</span></div>
+    </div>
+
+    <input type="text" id="clientName" placeholder="Client Name" style="border: 1px solid #ddd; width: 100%; margin-bottom: 20px; font-size: 1.1em;">
+
+    <table id="invTable">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th width="80">Qty</th>
+                <th width="100">Price</th>
+                <th width="100">Amount</th>
+                <th width="40"></th>
+            </tr>
+        </thead>
+        <tbody id="itemBody">
+            </tbody>
+    </table>
+
+    <button class="btn-add" onclick="addRow()">+ Add Item</button>
+
+    <div style="text-align: right; margin-top: 20px; font-size: 1.5em;">
+        Total: <span id="grandTotal">0.00</span>
+    </div>
+
+    <button class="btn-save" onclick="saveInvoice()">GENERATE & SAVE</button>
+
+    <script>
+        const API_URL = "YOUR_GAS_URL"; // Use the same GAS URL
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        // Initialization
+        window.onload = () => {
+            document.getElementById("invId").innerText = "INV-" + Date.now().toString().slice(-6);
+            document.getElementById("invDate").innerText = new Date().toLocaleDateString();
+            addRow(); // Start with one empty row
+        };
+
+        function addRow() {
+            const tbody = document.getElementById("itemBody");
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td><input type="text" class="desc"></td>
+                <td><input type="number" class="qty" value="1" oninput="calc()"></td>
+                <td><input type="number" class="price" value="0" oninput="calc()"></td>
+                <td class="amt" style="text-align:right">0.00</td>
+                <td><button onclick="this.parentElement.parentElement.remove(); calc();" style="color:red; background:none; border:none; cursor:pointer;">X</button></td>
+            `;
+            // Auto-focus on description of new row
+            row.querySelector(".desc").focus();
+        }
+
+        function calc() {
+            let total = 0;
+            document.querySelectorAll("#itemBody tr").forEach(row => {
+                const q = row.querySelector(".qty").value || 0;
+                const p = row.querySelector(".price").value || 0;
+                const a = q * p;
+                row.querySelector(".amt").innerText = a.toFixed(2);
+                total += a;
+            });
+            document.getElementById("grandTotal").innerText = total.toFixed(2);
+        }
+
+        async function saveInvoice() {
+            const items = [];
+            document.querySelectorAll("#itemBody tr").forEach(row => {
+                items.push({
+                    desc: row.querySelector(".desc").value,
+                    qty: row.querySelector(".qty").value,
+                    price: row.querySelector(".price").value
+                });
+            });
+
+            const payload = {
+                action: "saveInvoice",
+                invoiceId: document.getElementById("invId").innerText,
+                userId: user.id,
+                clientName: document.getElementById("clientName").value,
+                date: document.getElementById("invDate").innerText,
+                total: document.getElementById("grandTotal").innerText,
+                items: items
+            };
+
+            // Post to GAS using same no-cors technique
+            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+            
+            alert("Invoice Saved Successfully!");
+            // Optional: Parent command to refresh dashboard or close modal
+            window.print();
+        }
+    </script>
+</body>
+</html>
