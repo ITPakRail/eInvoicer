@@ -2,70 +2,52 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <title>Sales Report</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: #f0f2f5; }
-        .report-wrapper { max-width: 950px; margin: auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        
-        .header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; pb: 10px; margin-bottom: 20px; }
-        
-        .filter-section { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; }
-        .filter-section div { display: flex; flex-direction: column; flex: 1; }
-        label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        
-        .stats-container { display: flex; gap: 20px; margin-bottom: 30px; }
-        .stat-card { flex: 1; padding: 20px; border-radius: 8px; text-align: center; color: white; }
-        .blue { background: #1a73e8; }
-        .green { background: #1e8e3e; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f1f3f4; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f7f6; }
+        .report-card { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .stats-row { display: flex; gap: 20px; margin-bottom: 25px; }
+        .stat-box { flex: 1; padding: 20px; border-radius: 10px; text-align: center; color: white; }
+        .bg-total { background: #2c3e50; }
+        .bg-amount { background: #27ae60; }
+        .filter-bar { display: flex; gap: 15px; align-items: flex-end; background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; }
+        .filter-bar div { display: flex; flex-direction: column; flex: 1; }
+        input[type="date"] { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-view { background: #3498db; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px; background: #fafafa; border-bottom: 2px solid #eee; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
-        
-        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-gen { background: #1a73e8; color: white; }
-        .btn-print { background: #5f6368; color: white; }
-
-        @media print {
-            .filter-section, .btn { display: none !important; }
-            body { background: white; padding: 0; }
-            .report-wrapper { box-shadow: none; width: 100%; max-width: 100%; }
-        }
+        @media print { .filter-bar, .btn { display: none !important; } }
     </style>
 </head>
 <body>
 
-<div class="report-wrapper">
-    <div class="header-flex">
+<div class="report-card">
+    <h1 id="biz-name">Sales Report</h1>
+    <p id="report-period" style="color: #666;"></p>
+
+    <div class="filter-bar">
         <div>
-            <h1 id="biz-name" style="margin:0;">Business Report</h1>
-            <p id="report-period" style="color: #666; margin: 5px 0;"></p>
+            <label>Start Date</label>
+            <input type="date" id="start-date">
         </div>
-        <div style="text-align: right;">
-            <button class="btn btn-gen" onclick="generateReport()">Generate</button>
-            <button class="btn btn-print" onclick="window.print()">Print PDF</button>
+        <div>
+            <label>End Date</label>
+            <input type="date" id="end-date">
         </div>
+        <button class="btn btn-view" onclick="generateReport()">Generate Report</button>
+        <button class="btn" style="background:#95a5a6; color:white;" onclick="window.print()">Print</button>
     </div>
 
-    <div class="filter-section">
-        <div>
-            <label>From Date</label>
-            <input type="date" id="date-from">
+    <div class="stats-row">
+        <div class="stat-box bg-total">
+            <small>Total Invoices</small>
+            <h2 id="total-count">0</h2>
         </div>
-        <div>
-            <label>To Date</label>
-            <input type="date" id="date-to">
-        </div>
-    </div>
-
-    <div class="stats-container">
-        <div class="stat-card blue">
-            <div style="font-size: 0.9em;">Total Invoices</div>
-            <h2 id="out-count" style="margin: 5px 0;">0</h2>
-        </div>
-        <div class="stat-card green">
-            <div style="font-size: 0.9em;">Total Revenue</div>
-            <h2 id="out-revenue" style="margin: 5px 0;">0.00</h2>
+        <div class="stat-box bg-amount">
+            <small>Total Revenue</small>
+            <h2 id="total-revenue">0.00</h2>
         </div>
     </div>
 
@@ -73,81 +55,94 @@
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Invoice #</th>
-                <th>Client Name</th>
-                <th style="text-align: right;">Total Amount</th>
+                <th>Invoice ID</th>
+                <th>Client</th>
+                <th style="text-align:right">Amount</th>
             </tr>
         </thead>
-        <tbody id="table-body">
-            <tr><td colspan="4" style="text-align:center; padding: 30px; color: #999;">Select dates and click Generate</td></tr>
+        <tbody id="report-body">
+            <tr><td colspan="4" style="text-align:center; padding:30px;">Set dates and click Generate</td></tr>
         </tbody>
     </table>
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw_ZI3a69J2Q7tgnDjA9g_UiMuLWcZJ5zVR965v_YNT46P3h5w93gH8JpoRoxtilDWpqg/exec";
+    // 1. UPDATE THIS URL WITH YOUR DEPLOYED GAS URL
+    const API_URL = "YOUR_GAS_REPORT_URL_HERE";
     const user = JSON.parse(localStorage.getItem("user"));
 
     window.onload = () => {
-        if(user) document.getElementById('biz-name').innerText = user.business + " Report";
+        if (!user) {
+            alert("Please login first");
+            return;
+        }
+        document.getElementById('biz-name').innerText = user.business + " Sales Report";
         
-        // Default to current month
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('date-from').value = firstDay;
-        document.getElementById('date-to').value = today.toISOString().split('T')[0];
+        // Default dates: 1st of month to today
+        const d = new Date();
+        document.getElementById('start-date').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+        document.getElementById('end-date').value = d.toISOString().split('T')[0];
     };
 
     async function generateReport() {
-    const fromVal = document.getElementById('date-from').value;
-    const toVal = document.getElementById('date-to').value;
-    
-    // Set hours to ensure the full day is included
-    const start = new Date(fromVal);
-    start.setHours(0, 0, 0, 0);
-    
-    const end = new Date(toVal);
-    end.setHours(23, 59, 59, 999);
-    
-    document.getElementById('report-period').innerText = `Period: ${fromVal} to ${toVal}`;
+        const btn = document.querySelector('.btn-view');
+        const startVal = document.getElementById('start-date').value;
+        const endVal = document.getElementById('end-date').value;
 
-    const response = await fetch(`${API_URL}?userId=${user.id}`);
-    const allInvoices = await response.json();
-    
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = "";
-    
-    let count = 0;
-    let revenue = 0;
+        if (!startVal || !endVal) return alert("Select dates");
 
-    allInvoices.forEach(inv => {
-        // Force the sheet date into a standard format
-        const invDate = new Date(inv.date);
+        btn.innerText = "Loading...";
+        btn.disabled = true;
 
-        if (invDate >= start && invDate <= end) {
-            count++;
-            revenue += parseFloat(inv.total || 0);
+        try {
+            const response = await fetch(`${API_URL}?userId=${user.id}`);
+            const allData = await response.json();
             
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${inv.date}</td>
-                <td><strong>${inv.invoiceId}</strong></td>
-                <td>${inv.clientName}</td>
-                <td style="text-align: right;">${parseFloat(inv.total).toFixed(2)}</td>
-            `;
-            tbody.appendChild(tr);
-        }
-    });
+            console.log("Raw Data from Sheet:", allData); // Debug check
 
-    document.getElementById('out-count').innerText = count;
-    document.getElementById('out-revenue').innerText = revenue.toFixed(2);
-    
-    if(count === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No data found for these dates.</td></tr>';
-}
-        document.getElementById('out-count').innerText = count;
-        document.getElementById('out-revenue').innerText = revenue.toFixed(2);
-        
-        if(count === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No data found for these dates.</td></tr>';
+            const startDate = new Date(startVal).setHours(0,0,0,0);
+            const endDate = new Date(endVal).setHours(23,59,59,999);
+            
+            const tbody = document.getElementById('report-body');
+            tbody.innerHTML = "";
+            
+            let count = 0;
+            let revenue = 0;
+
+            allInvoicesFiltered = allData.filter(inv => {
+                const invDate = new Date(inv.date).getTime();
+                return invDate >= startDate && invDate <= endDate;
+            });
+
+            allInvoicesFiltered.forEach(inv => {
+                count++;
+                revenue += parseFloat(inv.total || 0);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${inv.date}</td>
+                    <td><strong>${inv.invoiceId}</strong></td>
+                    <td>${inv.clientName}</td>
+                    <td style="text-align:right">${parseFloat(inv.total).toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('total-count').innerText = count;
+            document.getElementById('total-revenue').innerText = revenue.toFixed(2);
+            document.getElementById('report-period').innerText = `Showing ${startVal} to ${endVal}`;
+
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found in this date range.</td></tr>`;
+            }
+
+        } catch (err) {
+            console.error("Report Error:", err);
+            alert("Failed to load data. See console (F12) for details.");
+        } finally {
+            btn.innerText = "Generate Report";
+            btn.disabled = false;
+        }
     }
 </script>
 
