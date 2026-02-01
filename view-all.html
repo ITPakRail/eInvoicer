@@ -7,30 +7,25 @@
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #fff; color: #333; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
         #searchBox { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; outline: none; }
-        #searchBox:focus { border-color: #3498db; }
         
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         th { background: #2c3e50; color: white; padding: 15px; text-align: left; position: sticky; top: 0; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
         tr:hover { background-color: #f5f6f7; }
 
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-print { background: #3498db; color: white; margin-right: 5px; }
-        .btn-edit { background: #f39c12; color: white; }
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-right: 5px; font-size: 12px; }
+        .btn-print { background: #3498db; color: white; }
+        .btn-wa { background: #25D366; color: white; } /* WhatsApp Green */
+        .btn-mail { background: #e74c3c; color: white; } /* Email Red */
         .btn:hover { opacity: 0.8; }
         
         #loader { text-align: center; padding: 50px; font-size: 18px; color: #666; }
         .hidden { display: none; }
-
-        /* Print Specific Styles */
-        @media print {
-            .no-print { display: none; }
-        }
     </style>
 </head>
 <body>
 
-    <div class="header-area no-print">
+    <div class="header-area">
         <input type="text" id="searchBox" placeholder="🔍 Search by Client Name or Invoice ID..." onkeyup="filterTable()">
         <button class="btn" style="background:#eee; color:#333;" onclick="loadData()">🔄 Refresh</button>
     </div>
@@ -44,7 +39,7 @@
                 <th>Invoice ID</th>
                 <th>Client Name</th>
                 <th>Total Amount</th>
-                <th class="no-print">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -53,13 +48,12 @@
     <script>
         const DATA_API_URL = "https://script.google.com/macros/s/AKfycbzicV8zgKjlKKZuU_BxquJV0BfeotoNeMXivKtIPYO9oWRD_NMyG8oz35XKbaeKgNsPVQ/exec";
         const user = JSON.parse(localStorage.getItem("user"));
-        let cachedInvoices = []; // To store data locally for printing
+        let cachedInvoices = [];
 
         window.onload = loadData;
 
         async function loadData() {
             if (!user) return;
-            
             const tbody = document.getElementById("tableBody");
             const loader = document.getElementById("loader");
             const table = document.getElementById("invTable");
@@ -79,122 +73,75 @@
                         <td><strong>${inv.invoiceId}</strong></td>
                         <td>${inv.clientName}</td>
                         <td>${parseFloat(inv.total).toFixed(2)}</td>
-                        <td class="no-print">
+                        <td>
                             <button class="btn btn-print" onclick="handlePrint('${inv.invoiceId}')">Print</button>
-                            <button class="btn btn-edit" onclick="handleEdit('${inv.invoiceId}')">Edit</button>
+                            <button class="btn btn-wa" onclick="handleWhatsApp('${inv.invoiceId}')">WhatsApp</button>
+                            <button class="btn btn-mail" onclick="handleEmail('${inv.invoiceId}')">Email</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                loader.innerText = "⚠️ Failed to load invoices. Check API URL.";
+                loader.innerText = "⚠️ Failed to load invoices.";
             }
         }
 
         function filterTable() {
             const input = document.getElementById("searchBox").value.toUpperCase();
             const rows = document.querySelectorAll("#tableBody tr");
-            
             rows.forEach(row => {
                 const text = row.innerText.toUpperCase();
                 row.style.display = text.indexOf(input) > -1 ? "" : "none";
             });
         }
 
-        function handlePrint(id) {
-            // Find the invoice data from our cached list
+        // Shared Logic to build text summary for WA/Email
+        function getInvoiceSummary(id) {
             const inv = cachedInvoices.find(i => i.invoiceId === id);
-            if (!inv) return alert("Error: Invoice data not found.");
-
-            let items = [];
-            try {
-                items = JSON.parse(inv.items);
-            } catch (e) {
-                alert("Error parsing invoice items.");
-                return;
-            }
-
-            // Create a clean print window
-            const printWin = window.open('', '_blank');
+            if (!inv) return null;
+            const items = JSON.parse(inv.items);
             
-            let itemRows = "";
+            let itemText = "";
             items.forEach(item => {
-                itemRows += `
-                    <tr>
-                        <td>${item.description || item.desc}</td>
-                        <td>${item.qty}</td>
-                        <td>${item.price}</td>
-                        <td style="text-align:right">${(item.qty * item.price).toFixed(2)}</td>
-                    </tr>`;
+                itemText += `- ${item.description || item.desc} (Qty: ${item.qty} x ${item.price}) = ${(item.qty * item.price).toFixed(2)}\n`;
             });
 
-            printWin.document.write(`
-                <html>
-                <head>
-                    <title>Invoice - ${inv.invoiceId}</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 30px; line-height: 1.6; }
-                        .inv-head { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                        .biz-details h2 { margin: 0; color: #2c3e50; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-                        th { border-bottom: 2px solid #444; text-align: left; padding: 10px; background: #f8f9fa; }
-                        td { padding: 10px; border-bottom: 1px solid #eee; }
-                        .total-section { text-align: right; margin-top: 20px; font-size: 1.4em; font-weight: bold; }
-                        .footer { margin-top: 50px; text-align: center; font-size: 0.9em; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="inv-head">
-                        <div class="biz-details">
-                            <h2>${user.business}</h2>
-                            <p>User ID: ${user.id}</p>
-                        </div>
-                        <div style="text-align:right">
-                            <h1 style="margin:0">INVOICE</h1>
-                            <p>ID: <strong>${inv.invoiceId}</strong><br>Date: ${inv.date}</p>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top:20px">
-                        <strong>Bill To:</strong><br>
-                        ${inv.clientName}
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>Qty</th>
-                                <th>Price</th>
-                                <th style="text-align:right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>${itemRows}</tbody>
-                    </table>
-
-                    <div class="total-section">
-                        Total Amount: ${parseFloat(inv.total).toFixed(2)}
-                    </div>
-
-                    <div class="footer">
-                        Thank you for your business!<br>
-                        Generated by eInvoicer
-                    </div>
-
-                    <script>
-                        window.onload = function() { 
-                            window.print(); 
-                            setTimeout(function(){ window.close(); }, 500);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
+            const bodyText = `Invoice: ${inv.invoiceId}\nDate: ${inv.date}\nClient: ${inv.clientName}\n\nItems:\n${itemText}\nTotal: ${parseFloat(inv.total).toFixed(2)}\n\nRegards,\n${user.business}`;
+            return { inv, bodyText };
         }
 
-        function handleEdit(id) {
-            alert("Edit mode for " + id + " is under development for security validation.");
+        function handleWhatsApp(id) {
+            const data = getInvoiceSummary(id);
+            if (!data) return;
+            
+            // Encode the text for URL
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(data.bodyText)}`;
+            window.open(waUrl, '_blank');
+        }
+
+        function handleEmail(id) {
+            const data = getInvoiceSummary(id);
+            if (!data) return;
+
+            const subject = encodeURIComponent(`Invoice ${data.inv.invoiceId} from ${user.business}`);
+            const body = encodeURIComponent(data.bodyText);
+            
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        }
+
+        // Keep your existing handlePrint function below...
+        function handlePrint(id) {
+            const inv = cachedInvoices.find(i => i.invoiceId === id);
+            if (!inv) return alert("Error: Invoice data not found.");
+            const items = JSON.parse(inv.items);
+            const printWin = window.open('', '_blank');
+            let itemRows = "";
+            items.forEach(item => {
+                itemRows += `<tr><td>${item.description || item.desc}</td><td>${item.qty}</td><td>${item.price}</td><td style="text-align:right">${(item.qty * item.price).toFixed(2)}</td></tr>`;
+            });
+
+            printWin.document.write(`<html><head><title>Invoice - ${inv.invoiceId}</title><style>body { font-family: sans-serif; padding: 30px; } .inv-head { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; } table { width: 100%; border-collapse: collapse; margin-top: 30px; } th { border-bottom: 2px solid #444; text-align: left; padding: 10px; } td { padding: 10px; border-bottom: 1px solid #eee; } .total-section { text-align: right; margin-top: 20px; font-size: 1.4em; font-weight: bold; }</style></head><body><div class="inv-head"><div><h2>${user.business}</h2><p>User ID: ${user.id}</p></div><div style="text-align:right"><h1>INVOICE</h1><p>ID: <strong>${inv.invoiceId}</strong><br>Date: ${inv.date}</p></div></div><div style="margin-top:20px"><strong>Bill To:</strong> ${inv.clientName}</div><table><thead><tr><th>Description</th><th>Qty</th><th>Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${itemRows}</tbody></table><div class="total-section">Total Amount: ${parseFloat(inv.total).toFixed(2)}</div><script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); };<\/script></body></html>`);
+            printWin.document.close();
         }
     </script>
 </body>
