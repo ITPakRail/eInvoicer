@@ -1,103 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eInvoicer - Login</title>
+    <title>eInvoicer - MultiVendor</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        h1 { color: #1a73e8; margin-bottom: 8px; }
-        p { color: #5f6368; margin-bottom: 24px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dadce0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 10px; }
-        button:hover { background: #1557b0; }
-        .toggle-link { margin-top: 20px; color: #1a73e8; cursor: pointer; font-size: 14px; text-decoration: none; display: block; }
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #2e7d32; color: white; border: none; cursor: pointer; margin-top: 10px; }
         .hidden { display: none; }
-        #loader { display: none; color: #1a73e8; margin-top: 10px; }
+        .toggle { font-size: 12px; color: blue; cursor: pointer; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>eInvoicer</h1>
-    <p id="sub-title">Manage your business invoices</p>
+<div class="card" id="authBox">
+    <h2 id="title">eInvoicer Login</h2>
     
-    <div id="login-section">
-        <input type="email" id="login-email" placeholder="Email Address">
-        <input type="password" id="login-pass" placeholder="Password">
-        <button onclick="handleAuth('login')">Sign In</button>
-        <span class="toggle-link" onclick="toggleForms()">Create an account</span>
+    <div id="loginFields">
+        <input type="email" id="l_email" placeholder="Email">
+        <input type="password" id="l_pass" placeholder="Password">
+        <button onclick="doLogin()">Login</button>
+        <div class="toggle" onclick="toggleForm()">New user? Sign up</div>
     </div>
 
-    <div id="signup-section" class="hidden">
-        <input type="text" id="reg-name" placeholder="Full Name">
-        <input type="email" id="reg-email" placeholder="Email Address">
-        <input type="password" id="reg-pass" placeholder="Password">
-        <input type="text" id="reg-business" placeholder="Business Name">
-        <button onclick="handleAuth('signup')">Register</button>
-        <span class="toggle-link" onclick="toggleForms()">Already have an account? Login</span>
+    <div id="signupFields" class="hidden">
+        <input type="text" id="s_name" placeholder="Full Name">
+        <input type="email" id="s_email" placeholder="Email">
+        <input type="password" id="s_pass" placeholder="Password">
+        <input type="text" id="s_phone" placeholder="Phone">
+        <input type="text" id="s_biz" placeholder="Business Name">
+        <button onclick="doSignup()">Create Account</button>
+        <div class="toggle" onclick="toggleForm()">Back to Login</div>
     </div>
-
-    <div id="loader">Processing...</div>
+    
+    <p id="msg"></p>
 </div>
 
 <script>
-    // PASTE YOUR GOOGLE WEB APP URL HERE
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyN6qkRW2rSX-6s6tRA0O6K4P1T7LRqpRXiQHC0xoDp-saVrIPYHTK1CG_YRjWM-TAU/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; // PASTE YOUR URL HERE
 
-    function toggleForms() {
-        document.getElementById('login-section').classList.toggle('hidden');
-        document.getElementById('signup-section').classList.toggle('hidden');
-        document.getElementById('sub-title').innerText = 
-            document.getElementById('login-section').classList.contains('hidden') ? "Join our vendor network" : "Manage your business invoices";
-    }
+function toggleForm() {
+    document.getElementById('loginFields').classList.toggle('hidden');
+    document.getElementById('signupFields').classList.toggle('hidden');
+    document.getElementById('title').innerText = document.getElementById('loginFields').classList.contains('hidden') ? "eInvoicer Signup" : "eInvoicer Login";
+}
 
-    async function handleAuth(type) {
-        const loader = document.getElementById('loader');
-        loader.style.display = "block";
+async function doSignup() {
+    const payload = {
+        action: "signup",
+        name: document.getElementById("s_name").value,
+        email: document.getElementById("s_email").value,
+        password: document.getElementById("s_pass").value,
+        phone: document.getElementById("s_phone").value,
+        business: document.getElementById("s_biz").value
+    };
 
-        let payload = { action: type };
+    document.getElementById("msg").innerText = "Registering...";
+    
+    await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(payload)
+    });
 
-        if (type === 'signup') {
-            payload.userData = {
-                name: document.getElementById('reg-name').value,
-                email: document.getElementById('reg-email').value,
-                password: document.getElementById('reg-pass').value,
-                business: document.getElementById('reg-business').value
-            };
+    document.getElementById("msg").innerText = "✅ Signup request sent. Try logging in now.";
+    toggleForm();
+}
+
+async function doLogin() {
+    const email = document.getElementById("l_email").value;
+    const pass = document.getElementById("l_pass").value;
+    const msg = document.getElementById("msg");
+    
+    msg.innerText = "Authenticating...";
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            // We removed mode: "no-cors" here to allow reading the response
+            body: JSON.stringify({ 
+                action: "login", 
+                email: email, 
+                password: pass 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === "Success") {
+            localStorage.setItem("user", JSON.stringify(result));
+            msg.innerText = "✅ Login Successful!";
+            alert("Welcome " + result.name);
+            // We will build the Invoice Dashboard next!
         } else {
-            payload.creds = {
-                email: document.getElementById('login-email').value,
-                password: document.getElementById('login-pass').value
-            };
+            msg.innerText = "❌ Invalid Email or Password";
         }
-
-        try {
-            const response = await fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-
-            if (type === 'signup' && data === "Success") {
-                alert("Account created! Please login.");
-                toggleForms();
-            } else if (type === 'login' && data.status === "Success") {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                alert("Welcome, " + data.user.name);
-                // Redirect to Dashboard here
-            } else {
-                alert(data.status || data);
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Connection Error. Check Console.");
-        } finally {
-            loader.style.display = "none";
-        }
+    } catch (error) {
+        console.error(error);
+        msg.innerText = "❌ Connection Error. Make sure you deployed a NEW version of GAS.";
     }
+}
 </script>
-
 </body>
 </html>
