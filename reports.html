@@ -85,13 +85,22 @@
     };
 async function generateReport() {
     const btn = document.querySelector('.btn-view');
-    const startVal = document.getElementById('start-date').value; // e.g., "2026-02-01"
-    const endVal = document.getElementById('end-date').value;     // e.g., "2026-02-02"
+    const startInput = document.getElementById('start-date').value; // "2026-02-01"
+    const endInput = document.getElementById('end-date').value;     // "2026-02-02"
 
-    if (!startVal || !endVal) return alert("Please select dates");
+    if (!startInput || !endInput) return alert("Select dates");
 
     btn.innerText = "Searching...";
     btn.disabled = true;
+
+    // Helper function to convert YYYY-MM-DD to M/D/YYYY
+    const formatToSheetDate = (dateStr) => {
+        const [y, m, d] = dateStr.split("-");
+        return `${parseInt(m)}/${parseInt(d)}/${y}`; // Returns "2/1/2026"
+    };
+
+    const startFormatted = formatToSheetDate(startInput);
+    const endFormatted = formatToSheetDate(endInput);
 
     try {
         const response = await fetch(`${API_URL}?userId=${user.id}`);
@@ -104,24 +113,27 @@ async function generateReport() {
         let revenue = 0;
 
         allData.forEach(inv => {
-            // 1. Get the date from Google (e.g., "2026-02-01T19:00:00.000Z")
-            // 2. Slice only the first 10 characters: "2026-02-01"
-            let sheetDateClean = "";
-            if (inv.date.includes("T")) {
-                sheetDateClean = inv.date.split("T")[0]; 
-            } else {
-                // If Google sends it as a raw string already
-                sheetDateClean = new Date(inv.date).toISOString().split('T')[0];
+            // Get the date string from the sheet (cleaning any time data if present)
+            let sheetDate = inv.date.includes("T") ? inv.date.split("T")[0] : inv.date;
+            
+            // If Google sent an ISO date, convert it to M/D/YYYY to match
+            if (sheetDate.includes("-")) {
+                const [y, m, d] = sheetDate.split("-");
+                sheetDate = `${parseInt(m)}/${parseInt(d)}/${y}`;
             }
 
-            // 3. Match against the date picker values (which are also YYYY-MM-DD)
-            if (sheetDateClean >= startVal && sheetDateClean <= endVal) {
+            // Convert to Date objects for logical comparison (Actual Math)
+            const currentInvDate = new Date(sheetDate);
+            const rangeStart = new Date(startFormatted);
+            const rangeEnd = new Date(endFormatted);
+
+            if (currentInvDate >= rangeStart && currentInvDate <= rangeEnd) {
                 count++;
                 revenue += parseFloat(inv.total || 0);
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${sheetDateClean}</td>
+                    <td>${sheetDate}</td>
                     <td><strong>${inv.invoiceId}</strong></td>
                     <td>${inv.clientName}</td>
                     <td style="text-align:right">${parseFloat(inv.total).toFixed(2)}</td>
@@ -134,7 +146,7 @@ async function generateReport() {
         document.getElementById('total-revenue').innerText = revenue.toFixed(2);
 
         if (count === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found between ${startVal} and ${endVal}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found for ${startFormatted} to ${endFormatted}</td></tr>`;
         }
 
     } catch (err) {
