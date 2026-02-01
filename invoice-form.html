@@ -22,10 +22,16 @@
         <div><strong>Date:</strong> <span id="display-date">--</span></div>
     </div>
 
-    <div style="margin-bottom: 20px;">
-        <label><strong>Client Name:</strong></label><br>
-        <input type="text" id="client-name" placeholder="Enter client name..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc;">
+   <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+    <div style="flex: 2;">
+        <label><strong>Client Name:</strong></label>
+        <input type="text" id="client-name" placeholder="Client Name" style="width: 100%; padding: 8px;">
     </div>
+    <div style="flex: 1;">
+        <label><strong>Phone (Optional):</strong></label>
+        <input type="text" id="client-phone" placeholder="e.g. 923001234567" style="width: 100%; padding: 8px;">
+    </div>
+</div>
 
     <table id="invoiceTable">
         <thead>
