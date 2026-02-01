@@ -66,16 +66,15 @@
     </aside>
 
     <main id="content-area">
-        <div class="content-card" id="welcome-msg">
-            <h2>Dashboard Overview</h2>
-            <p>Select an option from the left menu to get started with your <strong><span id="display-bizname"></span></strong> account.</p>
-        </div>
-        
-        <div id="section-create" class="hidden content-card">
-            <h3>Create New Invoice</h3>
-            <p>Invoice entry form will appear here.</p>
-        </div>
-    </main>
+    <div class="content-card" id="welcome-msg">
+        <h2>Dashboard Overview</h2>
+        <p>Select an option from the left menu to get started with your <strong><span id="display-bizname"></span></strong> account.</p>
+    </div>
+    
+    <div id="module-container" class="hidden" style="height: 100%;">
+        <iframe id="content-frame" src="" style="width: 100%; height: 85vh; border: none; border-radius: 8px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);"></iframe>
+    </div>
+</main>
 
     <footer>
         Copyrights © <span id="year"></span> eInvoicer | All Rights Reserved
@@ -121,10 +120,24 @@
         document.getElementById("display-bizname").innerText = user.business;
     }
 
-    function showSection(sectionId) {
-        // Simple logic to switch content (We will expand this)
-        alert("Section: " + sectionId + " coming soon!");
+ function showSection(sectionId) {
+    const welcome = document.getElementById('welcome-msg');
+    const container = document.getElementById('module-container');
+    const frame = document.getElementById('content-frame');
+
+    // Hide welcome message and show the frame container
+    welcome.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    // Load the specific file based on the button clicked
+    if (sectionId === 'create') {
+        frame.src = "invoice-form.html";
+    } else if (sectionId === 'view-all') {
+        frame.src = "view-invoices.html";
+    } else {
+        alert("Section: " + sectionId + " is under development.");
     }
+}
 
     function logout() {
         localStorage.removeItem("user");
