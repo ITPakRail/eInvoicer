@@ -85,55 +85,53 @@
     };
 async function generateReport() {
     const btn = document.querySelector('.btn-view');
-    const startInput = document.getElementById('start-date').value; // "2026-02-01"
-    const endInput = document.getElementById('end-date').value;     // "2026-02-02"
+    const startInput = document.getElementById('start-date').value; // "YYYY-MM-DD"
+    const endInput = document.getElementById('end-date').value;     // "YYYY-MM-DD"
 
     if (!startInput || !endInput) return alert("Select dates");
 
     btn.innerText = "Searching...";
     btn.disabled = true;
 
-    // Helper function to convert YYYY-MM-DD to M/D/YYYY
-    const formatToSheetDate = (dateStr) => {
-        const [y, m, d] = dateStr.split("-");
-        return `${parseInt(m)}/${parseInt(d)}/${y}`; // Returns "2/1/2026"
-    };
-
-    const startFormatted = formatToSheetDate(startInput);
-    const endFormatted = formatToSheetDate(endInput);
-
     try {
+        console.log("Fetching for user:", user.id);
         const response = await fetch(`${API_URL}?userId=${user.id}`);
         const allData = await response.json();
         
+        console.log("Data received from GAS:", allData);
+
         const tbody = document.getElementById('report-body');
         tbody.innerHTML = "";
         
         let count = 0;
         let revenue = 0;
 
+        // Create pure Date objects from the inputs (at midnight)
+        const rangeStart = new Date(startInput + "T00:00:00").getTime();
+        const rangeEnd = new Date(endInput + "T23:59:59").getTime();
+
         allData.forEach(inv => {
-            // Get the date string from the sheet (cleaning any time data if present)
-            let sheetDate = inv.date.includes("T") ? inv.date.split("T")[0] : inv.date;
+            // Convert sheet date (M/D/YYYY) to a JS Date object
+            // We split by "/" to ensure we pick the right parts
+            const parts = inv.date.split("/");
+            let invDate;
             
-            // If Google sent an ISO date, convert it to M/D/YYYY to match
-            if (sheetDate.includes("-")) {
-                const [y, m, d] = sheetDate.split("-");
-                sheetDate = `${parseInt(m)}/${parseInt(d)}/${y}`;
+            if (parts.length === 3) {
+                // Assumes sheet is M/D/YYYY
+                invDate = new Date(parts[2], parts[0] - 1, parts[1]).getTime();
+            } else {
+                // Fallback for ISO strings
+                invDate = new Date(inv.date).getTime();
             }
 
-            // Convert to Date objects for logical comparison (Actual Math)
-            const currentInvDate = new Date(sheetDate);
-            const rangeStart = new Date(startFormatted);
-            const rangeEnd = new Date(endFormatted);
-
-            if (currentInvDate >= rangeStart && currentInvDate <= rangeEnd) {
+            // The Math Comparison
+            if (invDate >= rangeStart && invDate <= rangeEnd) {
                 count++;
                 revenue += parseFloat(inv.total || 0);
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${sheetDate}</td>
+                    <td>${inv.date}</td>
                     <td><strong>${inv.invoiceId}</strong></td>
                     <td>${inv.clientName}</td>
                     <td style="text-align:right">${parseFloat(inv.total).toFixed(2)}</td>
@@ -146,12 +144,12 @@ async function generateReport() {
         document.getElementById('total-revenue').innerText = revenue.toFixed(2);
 
         if (count === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found for ${startFormatted} to ${endFormatted}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found in this range.</td></tr>`;
         }
 
     } catch (err) {
         console.error("Report Error:", err);
-        alert("Error loading data.");
+        alert("Error loading data. Check console for details.");
     } finally {
         btn.innerText = "Generate Report";
         btn.disabled = false;
