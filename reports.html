@@ -85,65 +85,73 @@
     };
 
     async function generateReport() {
-        const btn = document.querySelector('.btn-view');
-        const startVal = document.getElementById('start-date').value;
-        const endVal = document.getElementById('end-date').value;
+    const btn = document.querySelector('.btn-view');
+    const startVal = document.getElementById('start-date').value;
+    const endVal = document.getElementById('end-date').value;
 
-        if (!startVal || !endVal) return alert("Select dates");
+    if (!startVal || !endVal) return alert("Select dates");
 
-        btn.innerText = "Loading...";
-        btn.disabled = true;
+    btn.innerText = "Loading...";
+    btn.disabled = true;
 
-        try {
-            const response = await fetch(`${API_URL}?userId=${user.id}`);
-            const allData = await response.json();
-            
-            console.log("Raw Data from Sheet:", allData); // Debug check
+    try {
+        const response = await fetch(`${API_URL}?userId=${user.id}`);
+        const allData = await response.json();
+        
+        console.log("Raw Data:", allData);
 
-            const startDate = new Date(startVal).setHours(0,0,0,0);
-            const endDate = new Date(endVal).setHours(23,59,59,999);
-            
-            const tbody = document.getElementById('report-body');
-            tbody.innerHTML = "";
-            
-            let count = 0;
-            let revenue = 0;
+        // Convert picker strings (YYYY-MM-DD) to Date objects
+        const startDate = new Date(startVal);
+        startDate.setHours(0,0,0,0);
+        
+        const endDate = new Date(endVal);
+        endDate.setHours(23,59,59,999);
+        
+        const tbody = document.getElementById('report-body');
+        tbody.innerHTML = "";
+        
+        let count = 0;
+        let revenue = 0;
 
-            allInvoicesFiltered = allData.filter(inv => {
-                const invDate = new Date(inv.date).getTime();
-                return invDate >= startDate && invDate <= endDate;
-            });
+        allData.forEach(inv => {
+            // FIX: Convert the ISO string from Google into a JS Date object
+            const invDate = new Date(inv.date);
 
-            allInvoicesFiltered.forEach(inv => {
+            // Compare time-stamps
+            if (invDate >= startDate && invDate <= endDate) {
                 count++;
                 revenue += parseFloat(inv.total || 0);
                 
+                // Format the date for the table display
+                const displayDate = invDate.toLocaleDateString(); 
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${inv.date}</td>
+                    <td>${displayDate}</td>
                     <td><strong>${inv.invoiceId}</strong></td>
                     <td>${inv.clientName}</td>
                     <td style="text-align:right">${parseFloat(inv.total).toFixed(2)}</td>
                 `;
                 tbody.appendChild(tr);
-            });
-
-            document.getElementById('total-count').innerText = count;
-            document.getElementById('total-revenue').innerText = revenue.toFixed(2);
-            document.getElementById('report-period').innerText = `Showing ${startVal} to ${endVal}`;
-
-            if (count === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found in this date range.</td></tr>`;
             }
+        });
 
-        } catch (err) {
-            console.error("Report Error:", err);
-            alert("Failed to load data. See console (F12) for details.");
-        } finally {
-            btn.innerText = "Generate Report";
-            btn.disabled = false;
+        document.getElementById('total-count').innerText = count;
+        document.getElementById('total-revenue').innerText = revenue.toFixed(2);
+        document.getElementById('report-period').innerText = `Period: ${startVal} to ${endVal}`;
+
+        if (count === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No invoices found in this date range. Check your search dates!</td></tr>`;
         }
+
+    } catch (err) {
+        console.error("Report Error:", err);
+        alert("Failed to load data.");
+    } finally {
+        btn.innerText = "Generate Report";
+        btn.disabled = false;
     }
+}
 </script>
 
 </body>
