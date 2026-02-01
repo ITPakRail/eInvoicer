@@ -134,7 +134,10 @@
         frame.src = "invoice-form.html";
     } else if (sectionId === 'view-all') {
         frame.src = "view-all.html";
-    } else {
+    } else if(sectionId==='update' ){
+        frame.src="update.html";
+    }
+    else {
         alert("Section: " + sectionId + " is under development.");
     }
 }
