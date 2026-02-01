@@ -29,9 +29,9 @@
         <input type="password" id="s_pass" placeholder="Password">
         <input type="text" id="s_phone" placeholder="Phone">
         <input type="text" id="s_biz" placeholder="Business Name">
-        <label style="font-size: 12px; color: #666;">Upload Business Logo</label>
-<input type="file" id="s_logo" accept="image/*" onchange="previewLogo(this)">
-<div id="logoPreview" style="margin: 5px 0; text-align: center;"></div>
+        <label style="font-size: 12px; color: #666; margin-top: 10px; display: block;">Upload Business Logo</label>
+        <input type="file" id="s_logo" accept="image/*" onchange="previewLogo(this)">
+        <div id="logoPreview" style="margin: 5px 0; text-align: center;"></div>
         <button onclick="doSignup()">Create Account</button>
         <div class="toggle" onclick="toggleForm()">Back to Login</div>
     </div>
@@ -40,7 +40,10 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; // PASTE YOUR URL HERE
+// Replace this with your CURRENT Web App URL
+const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; 
+
+let globalLogoBase64 = ""; // Variable to store the logo string
 
 function toggleForm() {
     document.getElementById('loginFields').classList.toggle('hidden');
@@ -48,38 +51,57 @@ function toggleForm() {
     document.getElementById('title').innerText = document.getElementById('loginFields').classList.contains('hidden') ? "eInvoicer Signup" : "eInvoicer Login";
 }
 
-    // New function to show a tiny preview
 function previewLogo(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
+            globalLogoBase64 = e.target.result; // Save the base64 string
             document.getElementById('logoPreview').innerHTML = 
-                `<img src="${e.target.result}" style="height: 50px; border-radius: 4px;">`;
+                `<img src="${globalLogoBase64}" style="height: 50px; border-radius: 4px; border: 1px solid #ddd;">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
 }
+
 async function doSignup() {
+    const name = document.getElementById("s_name").value;
+    const email = document.getElementById("s_email").value;
+    const pass = document.getElementById("s_pass").value;
+    const biz = document.getElementById("s_biz").value;
+
+    if(!name || !email || !pass || !biz) {
+        alert("Please fill all required fields");
+        return;
+    }
+
     const payload = {
         action: "signup",
-        name: document.getElementById("s_name").value,
-        email: document.getElementById("s_email").value,
-        password: document.getElementById("s_pass").value,
+        name: name,
+        email: email,
+        password: pass,
         phone: document.getElementById("s_phone").value,
-        business: document.getElementById("s_biz").value
-        logo: logoBase64 // Sending the image as text
+        business: biz,
+        logo: globalLogoBase64 // Now properly defined
     };
 
-    document.getElementById("msg").innerText = "Registering with logo...";
+    document.getElementById("msg").innerText = "Registering...";
     
-    await fetch(API_URL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify(payload)
-    });
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify(payload)
+        });
 
-    document.getElementById("msg").innerText = "✅ Signup request sent. Try logging in now.";
-    toggleForm();
+        document.getElementById("msg").innerText = "✅ Signup request sent. Try logging in now.";
+        // Reset logo for next time
+        globalLogoBase64 = "";
+        document.getElementById('logoPreview').innerHTML = "";
+        toggleForm();
+    } catch (err) {
+        document.getElementById("msg").innerText = "❌ Error during signup.";
+        console.error(err);
+    }
 }
 
 async function doLogin() {
@@ -88,23 +110,22 @@ async function doLogin() {
     const msg = document.getElementById("msg");
     msg.innerText = "Authenticating...";
 
-    // We build the URL with parameters for a GET request
     const loginUrl = `${API_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`;
 
     try {
-        const response = await fetch(loginUrl); // Default is GET
+        const response = await fetch(loginUrl);
         const result = await response.json();
         
         if (result.status === "Success") {
+            // This result object will now include the logo string from the sheet
             localStorage.setItem("user", JSON.stringify(result));
             alert("Success! Welcome " + result.name);
-           // 2. REDIRECT TO DASHBOARD
             window.location.href = "dashboard.html";
         } else {
             msg.innerText = "❌ Invalid Credentials";
         }
     } catch (error) {
-        msg.innerText = "❌ Connection Error. Use New Version of GAS URL.";
+        msg.innerText = "❌ Connection Error.";
         console.error("Fetch Error:", error);
     }
 }
