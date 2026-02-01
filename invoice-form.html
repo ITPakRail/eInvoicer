@@ -2,108 +2,132 @@
 <html>
 <head>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: white; }
-        .inv-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: white; }
+        .header-flex { display: flex; justify-content: space-between; margin-bottom: 20px; background: #f8f9fa; padding: 10px; border-radius: 5px; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #eee; padding: 10px; border: 1px solid #ddd; }
-        td { border: 1px solid #ddd; padding: 5px; }
-        input { width: 95%; border: none; outline: none; padding: 5px; }
-        .btn-save { background: #2e7d32; color: white; padding: 10px 20px; width: 100%; margin-top: 20px; cursor: pointer; border: none; border-radius: 5px; font-size: 16px; }
-        .btn-add { background: #34495e; color: white; padding: 5px 10px; margin-top: 10px; border: none; cursor: pointer; }
+        th { background: #2c3e50; color: white; padding: 10px; border: 1px solid #ddd; }
+        td { border: 1px solid #ddd; padding: 8px; }
+        input { width: 95%; border: 1px solid #eee; padding: 5px; outline: none; }
+        input:focus { border-color: #3498db; }
+        .total-box { text-align: right; margin-top: 20px; font-size: 1.5em; font-weight: bold; color: #2e7d32; }
+        .btn-gen { background: #27ae60; color: white; padding: 15px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; margin-top: 20px; }
+        .btn-gen:hover { background: #219150; }
+        .delete-btn { color: red; cursor: pointer; font-weight: bold; border: none; background: none; }
     </style>
 </head>
 <body>
-    <div class="inv-header">
-        <div><strong>Invoice ID:</strong> <span id="invId">--</span></div>
-        <div><strong>Date:</strong> <span id="invDate">--</span></div>
+
+    <div class="header-flex">
+        <div><strong>Invoice ID:</strong> <span id="display-inv-id">--</span></div>
+        <div><strong>Date:</strong> <span id="display-date">--</span></div>
     </div>
 
-    <input type="text" id="clientName" placeholder="Client Name" style="border: 1px solid #ddd; width: 100%; margin-bottom: 20px; font-size: 1.1em;">
+    <div style="margin-bottom: 20px;">
+        <label><strong>Client Name:</strong></label><br>
+        <input type="text" id="client-name" placeholder="Enter client name..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc;">
+    </div>
 
-    <table id="invTable">
+    <table id="invoiceTable">
         <thead>
             <tr>
                 <th>Description</th>
                 <th width="80">Qty</th>
-                <th width="100">Price</th>
-                <th width="100">Amount</th>
+                <th width="120">Price</th>
+                <th width="120">Amount</th>
                 <th width="40"></th>
             </tr>
         </thead>
-        <tbody id="itemBody">
+        <tbody id="item-body">
             </tbody>
     </table>
 
-    <button class="btn-add" onclick="addRow()">+ Add Item</button>
-
-    <div style="text-align: right; margin-top: 20px; font-size: 1.5em;">
-        Total: <span id="grandTotal">0.00</span>
+    <div class="total-box">
+        Total: <span id="grand-total">0.00</span>
     </div>
 
-    <button class="btn-save" onclick="saveInvoice()">GENERATE & SAVE</button>
+    <button class="btn-gen" onclick="submitInvoice()">Generate & Save Invoice</button>
 
     <script>
-        const API_URL = "YOUR_GAS_URL"; // Use the same GAS URL
+        const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
         const user = JSON.parse(localStorage.getItem("user"));
 
-        // Initialization
         window.onload = () => {
-            document.getElementById("invId").innerText = "INV-" + Date.now().toString().slice(-6);
-            document.getElementById("invDate").innerText = new Date().toLocaleDateString();
-            addRow(); // Start with one empty row
+            document.getElementById("display-inv-id").innerText = "INV-" + Date.now().toString().slice(-6);
+            document.getElementById("display-date").innerText = new Date().toLocaleDateString();
+            addNewRow(); // Start with first row
         };
 
-        function addRow() {
-            const tbody = document.getElementById("itemBody");
-            const row = tbody.insertRow();
-            row.innerHTML = `
-                <td><input type="text" class="desc"></td>
-                <td><input type="number" class="qty" value="1" oninput="calc()"></td>
-                <td><input type="number" class="price" value="0" oninput="calc()"></td>
-                <td class="amt" style="text-align:right">0.00</td>
-                <td><button onclick="this.parentElement.parentElement.remove(); calc();" style="color:red; background:none; border:none; cursor:pointer;">X</button></td>
+        function addNewRow() {
+            const tbody = document.getElementById("item-body");
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><input type="text" class="row-desc" placeholder="Item name..."></td>
+                <td><input type="number" class="row-qty" value="1" oninput="calculate()"></td>
+                <td><input type="number" class="row-price" value="0" oninput="calculate()" onblur="checkAutoRow(this)"></td>
+                <td class="row-amt" style="text-align:right">0.00</td>
+                <td style="text-align:center"><button class="delete-btn" onclick="removeRow(this)">✖</button></td>
             `;
-            // Auto-focus on description of new row
-            row.querySelector(".desc").focus();
+            tbody.appendChild(tr);
         }
 
-        function calc() {
-            let total = 0;
-            document.querySelectorAll("#itemBody tr").forEach(row => {
-                const q = row.querySelector(".qty").value || 0;
-                const p = row.querySelector(".price").value || 0;
-                const a = q * p;
-                row.querySelector(".amt").innerText = a.toFixed(2);
-                total += a;
+        function checkAutoRow(input) {
+            const rows = document.querySelectorAll("#item-body tr");
+            const lastRow = rows[rows.length - 1];
+            // If the user just finished the price on the last row, add a new one
+            if (input.parentElement.parentElement === lastRow && input.value > 0) {
+                addNewRow();
+            }
+        }
+
+        function removeRow(btn) {
+            const rows = document.querySelectorAll("#item-body tr");
+            if (rows.length > 1) {
+                btn.parentElement.parentElement.remove();
+                calculate();
+            }
+        }
+
+        function calculate() {
+            let grand = 0;
+            document.querySelectorAll("#item-body tr").forEach(row => {
+                const q = row.querySelector(".row-qty").value || 0;
+                const p = row.querySelector(".row-price").value || 0;
+                const amt = q * p;
+                row.querySelector(".row-amt").innerText = amt.toFixed(2);
+                grand += amt;
             });
-            document.getElementById("grandTotal").innerText = total.toFixed(2);
+            document.getElementById("grand-total").innerText = grand.toFixed(2);
         }
 
-        async function saveInvoice() {
+        async function submitInvoice() {
             const items = [];
-            document.querySelectorAll("#itemBody tr").forEach(row => {
-                items.push({
-                    desc: row.querySelector(".desc").value,
-                    qty: row.querySelector(".qty").value,
-                    price: row.querySelector(".price").value
-                });
+            document.querySelectorAll("#item-body tr").forEach(row => {
+                const desc = row.querySelector(".row-desc").value;
+                if (desc) {
+                    items.push({
+                        description: desc,
+                        qty: row.querySelector(".row-qty").value,
+                        price: row.querySelector(".row-price").value,
+                        amount: row.querySelector(".row-amt").innerText
+                    });
+                }
             });
+
+            if (items.length === 0) return alert("Please add at least one item.");
 
             const payload = {
                 action: "saveInvoice",
-                invoiceId: document.getElementById("invId").innerText,
+                invoiceId: document.getElementById("display-inv-id").innerText,
                 userId: user.id,
-                clientName: document.getElementById("clientName").value,
-                date: document.getElementById("invDate").innerText,
-                total: document.getElementById("grandTotal").innerText,
+                clientName: document.getElementById("client-name").value,
+                date: document.getElementById("display-date").innerText,
+                total: document.getElementById("grand-total").innerText,
                 items: items
             };
 
-            // Post to GAS using same no-cors technique
             await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
             
-            alert("Invoice Saved Successfully!");
-            // Optional: Parent command to refresh dashboard or close modal
+            alert("✅ Invoice " + payload.invoiceId + " saved successfully!");
             window.print();
         }
     </script>
