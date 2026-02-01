@@ -48,6 +48,17 @@ function toggleForm() {
     document.getElementById('title').innerText = document.getElementById('loginFields').classList.contains('hidden') ? "eInvoicer Signup" : "eInvoicer Login";
 }
 
+    // New function to show a tiny preview
+function previewLogo(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('logoPreview').innerHTML = 
+                `<img src="${e.target.result}" style="height: 50px; border-radius: 4px;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
 async function doSignup() {
     const payload = {
         action: "signup",
@@ -56,9 +67,10 @@ async function doSignup() {
         password: document.getElementById("s_pass").value,
         phone: document.getElementById("s_phone").value,
         business: document.getElementById("s_biz").value
+        logo: logoBase64 // Sending the image as text
     };
 
-    document.getElementById("msg").innerText = "Registering...";
+    document.getElementById("msg").innerText = "Registering with logo...";
     
     await fetch(API_URL, {
         method: "POST",
