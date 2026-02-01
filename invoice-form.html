@@ -51,11 +51,19 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
         const user = JSON.parse(localStorage.getItem("user"));
 
-        window.onload = () => {
-            document.getElementById("display-inv-id").innerText = "INV-" + Date.now().toString().slice(-6);
-            document.getElementById("display-date").innerText = new Date().toLocaleDateString();
-            addNewRow(); // Start with first row
-        };
+       window.onload = async () => {
+    document.getElementById("display-date").innerText = new Date().toLocaleDateString();
+    addNewRow(); // Start with first row
+    
+    // Fetch Next ID from GAS
+    try {
+        const response = await fetch(`${API_URL}?action=getNextId`);
+        const data = await response.json();
+        document.getElementById("display-inv-id").innerText = data.nextId;
+    } catch (e) {
+        document.getElementById("display-inv-id").innerText = "INV-1001"; // Fallback
+    }
+};
 
         function addNewRow() {
             const tbody = document.getElementById("item-body");
@@ -99,37 +107,56 @@
             document.getElementById("grand-total").innerText = grand.toFixed(2);
         }
 
-        async function submitInvoice() {
-            const items = [];
-            document.querySelectorAll("#item-body tr").forEach(row => {
-                const desc = row.querySelector(".row-desc").value;
-                if (desc) {
-                    items.push({
-                        description: desc,
-                        qty: row.querySelector(".row-qty").value,
-                        price: row.querySelector(".row-price").value,
-                        amount: row.querySelector(".row-amt").innerText
-                    });
-                }
+      async function submitInvoice() {
+    const btn = document.querySelector(".btn-gen");
+    const invId = document.getElementById("display-inv-id").innerText;
+    const client = document.getElementById("client-name").value;
+
+    if (!client) return alert("Please enter Client Name");
+
+    // 1. DISABLE BUTTON TO PREVENT DOUBLE SAVING
+    btn.disabled = true;
+    btn.innerText = "Saving... Please wait...";
+    btn.style.background = "#ccc";
+
+    const items = [];
+    document.querySelectorAll("#item-body tr").forEach(row => {
+        const desc = row.querySelector(".row-desc").value;
+        if (desc) {
+            items.push({
+                description: desc,
+                qty: row.querySelector(".row-qty").value,
+                price: row.querySelector(".row-price").value,
+                amount: row.querySelector(".row-amt").innerText
             });
-
-            if (items.length === 0) return alert("Please add at least one item.");
-
-            const payload = {
-                action: "saveInvoice",
-                invoiceId: document.getElementById("display-inv-id").innerText,
-                userId: user.id,
-                clientName: document.getElementById("client-name").value,
-                date: document.getElementById("display-date").innerText,
-                total: document.getElementById("grand-total").innerText,
-                items: items
-            };
-
-            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
-            
-            alert("✅ Invoice " + payload.invoiceId + " saved successfully!");
-            window.print();
         }
+    });
+
+    const payload = {
+        action: "saveInvoice",
+        invoiceId: invId,
+        userId: user.id,
+        clientName: client,
+        date: document.getElementById("display-date").innerText,
+        total: document.getElementById("grand-total").innerText,
+        items: items
+    };
+
+    try {
+        await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+        
+        alert("✅ Invoice " + invId + " Saved!");
+        window.print();
+        
+        // Refresh page to get a fresh ID for the next invoice
+        window.location.reload(); 
+    } catch (err) {
+        alert("Error saving invoice. Try again.");
+        btn.disabled = false;
+        btn.innerText = "Generate & Save Invoice";
+        btn.style.background = "#27ae60";
+    }
+}
     </script>
 </body>
 </html>
