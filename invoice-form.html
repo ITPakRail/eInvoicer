@@ -124,7 +124,7 @@ window.onload = async () => {
     const btn = document.querySelector(".btn-gen");
     const invId = document.getElementById("display-inv-id").innerText;
     const client = document.getElementById("client-name").value;
-
+    const phone = document.getElementById("client-phone").value; // <--- ADD THIS LINE
     if (!client) return alert("Please enter Client Name");
 
     // 1. DISABLE BUTTON TO PREVENT DOUBLE SAVING
@@ -150,6 +150,7 @@ window.onload = async () => {
         invoiceId: invId,
         userId: user.id,
         clientName: client,
+        clientPhone: phone, // <--- ADD THIS LINE TO THE PAYLOAD
         date: document.getElementById("display-date").innerText,
         total: document.getElementById("grand-total").innerText,
         items: items
