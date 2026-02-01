@@ -3,35 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>View All Invoices</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #fff; color: #333; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
         #searchBox { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; outline: none; }
-        #searchBox:focus { border-color: #3498db; }
-        
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        th { background: #2c3e50; color: white; padding: 15px; text-align: left; position: sticky; top: 0; }
+        th { background: #2c3e50; color: white; padding: 15px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
-        tr:hover { background-color: #f5f6f7; }
-
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-print { background: #3498db; color: white; margin-right: 5px; }
-        .btn-edit { background: #f39c12; color: white; }
-        .btn:hover { opacity: 0.8; }
-        
-        #loader { text-align: center; padding: 50px; font-size: 18px; color: #666; }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 4px; font-size: 12px; }
+        .btn-print { background: #3498db; color: white; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn-mail { background: #e74c3c; color: white; }
+        #loader { text-align: center; padding: 50px; }
         .hidden { display: none; }
-
-        /* Print Specific Styles */
-        @media print {
-            .no-print { display: none; }
-        }
     </style>
 </head>
 <body>
 
-    <div class="header-area no-print">
-        <input type="text" id="searchBox" placeholder="🔍 Search by Client Name or Invoice ID..." onkeyup="filterTable()">
+    <div class="header-area">
+        <input type="text" id="searchBox" placeholder="🔍 Search by Client Name or ID..." onkeyup="filterTable()">
         <button class="btn" style="background:#eee; color:#333;" onclick="loadData()">🔄 Refresh</button>
     </div>
 
@@ -43,8 +35,8 @@
                 <th>Date</th>
                 <th>Invoice ID</th>
                 <th>Client Name</th>
-                <th>Total Amount</th>
-                <th class="no-print">Actions</th>
+                <th>Total</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -53,13 +45,12 @@
     <script>
         const DATA_API_URL = "https://script.google.com/macros/s/AKfycbzicV8zgKjlKKZuU_BxquJV0BfeotoNeMXivKtIPYO9oWRD_NMyG8oz35XKbaeKgNsPVQ/exec";
         const user = JSON.parse(localStorage.getItem("user"));
-        let cachedInvoices = []; // To store data locally for printing
+        let cachedInvoices = [];
 
         window.onload = loadData;
 
         async function loadData() {
             if (!user) return;
-            
             const tbody = document.getElementById("tableBody");
             const loader = document.getElementById("loader");
             const table = document.getElementById("invTable");
@@ -77,124 +68,70 @@
                     tr.innerHTML = `
                         <td>${inv.date}</td>
                         <td><strong>${inv.invoiceId}</strong></td>
-                        <td>${inv.clientName}</td>
+                        <td>${inv.clientName}<br><small>${inv.clientPhone || 'No Phone'}</small></td>
                         <td>${parseFloat(inv.total).toFixed(2)}</td>
-                        <td class="no-print">
+                        <td>
                             <button class="btn btn-print" onclick="handlePrint('${inv.invoiceId}')">Print</button>
-                            <button class="btn btn-edit" onclick="handleEdit('${inv.invoiceId}')">Edit</button>
+                            <button class="btn btn-wa" onclick="handleShare('${inv.invoiceId}', 'wa')">WhatsApp</button>
+                            <button class="btn btn-mail" onclick="handleShare('${inv.invoiceId}', 'mail')">Email</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                loader.innerText = "⚠️ Failed to load invoices. Check API URL.";
+                loader.innerText = "⚠️ Error loading invoices.";
+            }
+        }
+
+        async function handleShare(id, platform) {
+            const { jsPDF } = window.jspdf;
+            const inv = cachedInvoices.find(i => i.invoiceId === id);
+            if (!inv) return;
+
+            const doc = new jsPDF();
+            doc.text(user.business, 14, 20);
+            doc.text(`Invoice: ${inv.invoiceId}`, 14, 30);
+            doc.text(`To: ${inv.clientName}`, 14, 40);
+
+            const items = JSON.parse(inv.items);
+            const tableData = items.map(i => [i.description || i.desc, i.qty, i.price, (i.qty*i.price).toFixed(2)]);
+            
+            doc.autoTable({ startY: 50, head: [['Item', 'Qty', 'Price', 'Total']], body: tableData });
+            doc.text(`Grand Total: ${parseFloat(inv.total).toFixed(2)}`, 14, doc.lastAutoTable.finalY + 10);
+
+            const pdfBlob = doc.output('blob');
+            const file = new File([pdfBlob], `${inv.invoiceId}.pdf`, { type: 'application/pdf' });
+
+            // Try Native Sharing (Mobile)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: inv.invoiceId });
+            } else {
+                // Desktop Fallback: Open WA/Mail with text + Download PDF
+                doc.save(`${inv.invoiceId}.pdf`);
+                const msg = encodeURIComponent(`Hi ${inv.clientName}, your invoice ${inv.invoiceId} for ${inv.total} is ready. I've downloaded the PDF for you to attach.`);
+                if(platform === 'wa') {
+                    window.open(`https://wa.me/${inv.clientPhone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+                } else {
+                    window.location.href = `mailto:?subject=Invoice ${inv.invoiceId}&body=${msg}`;
+                }
             }
         }
 
         function filterTable() {
             const input = document.getElementById("searchBox").value.toUpperCase();
-            const rows = document.querySelectorAll("#tableBody tr");
-            
-            rows.forEach(row => {
-                const text = row.innerText.toUpperCase();
-                row.style.display = text.indexOf(input) > -1 ? "" : "none";
+            document.querySelectorAll("#tableBody tr").forEach(row => {
+                row.style.display = row.innerText.toUpperCase().includes(input) ? "" : "none";
             });
         }
 
         function handlePrint(id) {
-            // Find the invoice data from our cached list
             const inv = cachedInvoices.find(i => i.invoiceId === id);
-            if (!inv) return alert("Error: Invoice data not found.");
-
-            let items = [];
-            try {
-                items = JSON.parse(inv.items);
-            } catch (e) {
-                alert("Error parsing invoice items.");
-                return;
-            }
-
-            // Create a clean print window
+            const items = JSON.parse(inv.items);
             const printWin = window.open('', '_blank');
-            
-            let itemRows = "";
-            items.forEach(item => {
-                itemRows += `
-                    <tr>
-                        <td>${item.description || item.desc}</td>
-                        <td>${item.qty}</td>
-                        <td>${item.price}</td>
-                        <td style="text-align:right">${(item.qty * item.price).toFixed(2)}</td>
-                    </tr>`;
-            });
-
-            printWin.document.write(`
-                <html>
-                <head>
-                    <title>Invoice - ${inv.invoiceId}</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 30px; line-height: 1.6; }
-                        .inv-head { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                        .biz-details h2 { margin: 0; color: #2c3e50; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-                        th { border-bottom: 2px solid #444; text-align: left; padding: 10px; background: #f8f9fa; }
-                        td { padding: 10px; border-bottom: 1px solid #eee; }
-                        .total-section { text-align: right; margin-top: 20px; font-size: 1.4em; font-weight: bold; }
-                        .footer { margin-top: 50px; text-align: center; font-size: 0.9em; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="inv-head">
-                        <div class="biz-details">
-                            <h2>${user.business}</h2>
-                            <p>User ID: ${user.id}</p>
-                        </div>
-                        <div style="text-align:right">
-                            <h1 style="margin:0">INVOICE</h1>
-                            <p>ID: <strong>${inv.invoiceId}</strong><br>Date: ${inv.date}</p>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top:20px">
-                        <strong>Bill To:</strong><br>
-                        ${inv.clientName}
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>Qty</th>
-                                <th>Price</th>
-                                <th style="text-align:right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>${itemRows}</tbody>
-                    </table>
-
-                    <div class="total-section">
-                        Total Amount: ${parseFloat(inv.total).toFixed(2)}
-                    </div>
-
-                    <div class="footer">
-                        Thank you for your business!<br>
-                        Generated by eInvoicer
-                    </div>
-
-                    <script>
-                        window.onload = function() { 
-                            window.print(); 
-                            setTimeout(function(){ window.close(); }, 500);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
+            let rows = "";
+            items.forEach(i => { rows += `<tr><td>${i.description || i.desc}</td><td>${i.qty}</td><td>${i.price}</td><td align="right">${(i.qty*i.price).toFixed(2)}</td></tr>`; });
+            printWin.document.write(`<html><body><h2>${user.business}</h2><h3>Invoice: ${inv.invoiceId}</h3><p>Client: ${inv.clientName}</p><table border="1" width="100%" style="border-collapse:collapse"><thead><tr><th>Desc</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><h3>Total: ${inv.total}</h3><script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
             printWin.document.close();
-        }
-
-        function handleEdit(id) {
-            alert("Edit mode for " + id + " is under development for security validation.");
         }
     </script>
 </body>
