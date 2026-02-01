@@ -83,41 +83,77 @@
             }
         }
 
-        async function handleShare(id, platform) {
-            const { jsPDF } = window.jspdf;
-            const inv = cachedInvoices.find(i => i.invoiceId === id);
-            if (!inv) return;
+    async function handleShare(id, platform) {
+    const { jsPDF } = window.jspdf;
+    const inv = cachedInvoices.find(i => i.invoiceId === id);
+    if (!inv) return;
 
-            const doc = new jsPDF();
-            doc.text(user.business, 14, 20);
-            doc.text(`Invoice: ${inv.invoiceId}`, 14, 30);
-            doc.text(`To: ${inv.clientName}`, 14, 40);
+    // 1. GENERATE THE TEXT SUMMARY
+    const items = JSON.parse(inv.items);
+    let itemText = "";
+    items.forEach(item => {
+        itemText += `• ${item.description || item.desc} (Qty: ${item.qty} x ${item.price}) = ${(item.qty * item.price).toFixed(2)}\n`;
+    });
 
-            const items = JSON.parse(inv.items);
-            const tableData = items.map(i => [i.description || i.desc, i.qty, i.price, (i.qty*i.price).toFixed(2)]);
-            
-            doc.autoTable({ startY: 50, head: [['Item', 'Qty', 'Price', 'Total']], body: tableData });
-            doc.text(`Grand Total: ${parseFloat(inv.total).toFixed(2)}`, 14, doc.lastAutoTable.finalY + 10);
+    const fullMessage = `📄 *INVOICE: ${inv.invoiceId}*\n` +
+                        `📅 Date: ${inv.date}\n` +
+                        `👤 Client: ${inv.clientName}\n\n` +
+                        `*Items:*\n${itemText}\n` +
+                        `💰 *Total Amount: ${parseFloat(inv.total).toFixed(2)}*\n\n` +
+                        `_Please find the attached PDF for your records._\n` +
+                        `Regards, *${user.business}*`;
 
-            const pdfBlob = doc.output('blob');
-            const file = new File([pdfBlob], `${inv.invoiceId}.pdf`, { type: 'application/pdf' });
+    // 2. GENERATE THE PDF
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text(user.business, 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Invoice ID: ${inv.invoiceId}`, 14, 30);
+    doc.text(`Date: ${inv.date}`, 14, 35);
+    doc.text(`Client: ${inv.clientName}`, 14, 45);
 
-            // Try Native Sharing (Mobile)
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: inv.invoiceId });
-            } else {
-                // Desktop Fallback: Open WA/Mail with text + Download PDF
-                doc.save(`${inv.invoiceId}.pdf`);
-                const msg = encodeURIComponent(`Hi ${inv.clientName}, your invoice ${inv.invoiceId} for ${inv.total} is ready. I've downloaded the PDF for you to attach.`);
-                if(platform === 'wa') {
-                    window.open(`https://wa.me/${inv.clientPhone.replace(/\D/g,'')}?text=${msg}`, '_blank');
-                } else {
-                    window.location.href = `mailto:?subject=Invoice ${inv.invoiceId}&body=${msg}`;
-                }
-            }
+    const tableData = items.map(item => [
+        item.description || item.desc,
+        item.qty,
+        item.price,
+        (item.qty * item.price).toFixed(2)
+    ]);
+
+    doc.autoTable({
+        startY: 55,
+        head: [['Description', 'Qty', 'Price', 'Amount']],
+        body: tableData,
+    });
+
+    doc.text(`Total Amount: ${parseFloat(inv.total).toFixed(2)}`, 14, doc.lastAutoTable.finalY + 10);
+
+    const pdfBlob = doc.output('blob');
+    const file = new File([pdfBlob], `${inv.invoiceId}.pdf`, { type: 'application/pdf' });
+
+    // 3. EXECUTE SHARING
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: `Invoice ${inv.invoiceId}`,
+                text: fullMessage, // This sends the detailed text with the file
+            });
+        } catch (err) {
+            console.log("Share cancelled or failed", err);
         }
-
-        function filterTable() {
+    } else {
+        // Desktop Fallback: Download PDF + Open Link
+        doc.save(`${inv.invoiceId}.pdf`);
+        const encodedMsg = encodeURIComponent(fullMessage);
+        
+        if (platform === 'wa') {
+            const cleanPhone = inv.clientPhone ? inv.clientPhone.replace(/\D/g,'') : "";
+            window.open(`https://wa.me/${cleanPhone}?text=${encodedMsg}`, '_blank');
+        } else {
+            window.location.href = `mailto:?subject=Invoice ${inv.invoiceId}&body=${encodedMsg}`;
+        }
+    }
+}        function filterTable() {
             const input = document.getElementById("searchBox").value.toUpperCase();
             document.querySelectorAll("#tableBody tr").forEach(row => {
                 row.style.display = row.innerText.toUpperCase().includes(input) ? "" : "none";
