@@ -99,38 +99,51 @@
     };
 
     async function generateReport() {
-        const fromDate = new Date(document.getElementById('date-from').value).setHours(0,0,0,0);
-        const toDate = new Date(document.getElementById('date-to').value).setHours(23,59,59,999);
-        
-        document.getElementById('report-period').innerText = "Period: " + document.getElementById('date-from').value + " to " + document.getElementById('date-to').value;
+    const fromVal = document.getElementById('date-from').value;
+    const toVal = document.getElementById('date-to').value;
+    
+    // Set hours to ensure the full day is included
+    const start = new Date(fromVal);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(toVal);
+    end.setHours(23, 59, 59, 999);
+    
+    document.getElementById('report-period').innerText = `Period: ${fromVal} to ${toVal}`;
 
-        const response = await fetch(`${API_URL}?userId=${user.id}`);
-        const allInvoices = await response.json();
-        
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = "";
-        
-        let count = 0;
-        let revenue = 0;
+    const response = await fetch(`${API_URL}?userId=${user.id}`);
+    const allInvoices = await response.json();
+    
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = "";
+    
+    let count = 0;
+    let revenue = 0;
 
-        allInvoices.forEach(inv => {
-            const invDate = new Date(inv.date).getTime();
+    allInvoices.forEach(inv => {
+        // Force the sheet date into a standard format
+        const invDate = new Date(inv.date);
+
+        if (invDate >= start && invDate <= end) {
+            count++;
+            revenue += parseFloat(inv.total || 0);
             
-            if (invDate >= fromDate && invDate <= toDate) {
-                count++;
-                revenue += parseFloat(inv.total);
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${inv.date}</td>
-                    <td><strong>${inv.invoiceId}</strong></td>
-                    <td>${inv.clientName}</td>
-                    <td style="text-align: right;">${parseFloat(inv.total).toFixed(2)}</td>
-                `;
-                tbody.appendChild(tr);
-            }
-        });
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${inv.date}</td>
+                <td><strong>${inv.invoiceId}</strong></td>
+                <td>${inv.clientName}</td>
+                <td style="text-align: right;">${parseFloat(inv.total).toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
 
+    document.getElementById('out-count').innerText = count;
+    document.getElementById('out-revenue').innerText = revenue.toFixed(2);
+    
+    if(count === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No data found for these dates.</td></tr>';
+}
         document.getElementById('out-count').innerText = count;
         document.getElementById('out-revenue').innerText = revenue.toFixed(2);
         
