@@ -38,12 +38,7 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; // PASTE YOUR URL HERE
-// 1. AUTO-REDIRECT IF ALREADY LOGGED IN
-window.onload = () => {
-    if (localStorage.getItem("user")) {
-        window.location.href = "dashboard.html";
-    }
-};
+
 function toggleForm() {
     document.getElementById('loginFields').classList.toggle('hidden');
     document.getElementById('signupFields').classList.toggle('hidden');
@@ -78,27 +73,22 @@ async function doLogin() {
     const msg = document.getElementById("msg");
     msg.innerText = "Authenticating...";
 
+    // We build the URL with parameters for a GET request
+    const loginUrl = `${API_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`;
+
     try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain" // Using text/plain avoids some CORS triggers
-            },
-            body: JSON.stringify({ action: "login", email: email, password: pass })
-        });
-        
+        const response = await fetch(loginUrl); // Default is GET
         const result = await response.json();
         
         if (result.status === "Success") {
             localStorage.setItem("user", JSON.stringify(result));
             alert("Success! Welcome " + result.name);
-          // 2. REDIRECT TO DASHBOARD
-            window.location.href = "dashboard.html";
+            showDashboard(); // We will build this next
         } else {
             msg.innerText = "❌ Invalid Credentials";
         }
     } catch (error) {
-        msg.innerText = "❌ Connection Error. Open Console (F12) to see details.";
+        msg.innerText = "❌ Connection Error. Use New Version of GAS URL.";
         console.error("Fetch Error:", error);
     }
 }
