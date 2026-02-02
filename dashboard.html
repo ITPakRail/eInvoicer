@@ -129,13 +129,19 @@
  //   function toggleSettings() {
    //     document.getElementById('settings-menu').classList.toggle('open');
     //}
-    function toggleMenu(id) {
-    // Close other submenus if they are open (optional, for a cleaner look)
+   function toggleMenu(id) {
+    const targetMenu = document.getElementById(id);
+    const isOpen = targetMenu.classList.contains('open');
+
+    // 1. Close ALL submenus first
     document.querySelectorAll('.submenu').forEach(menu => {
-        if(menu.id !== id) menu.classList.remove('open');
+        menu.classList.remove('open');
     });
-    // Toggle the clicked menu
-    document.getElementById(id).classList.toggle('open');
+
+    // 2. If the one we clicked wasn't open, open it now
+    if (!isOpen) {
+        targetMenu.classList.add('open');
+    }
 }
 
     // Modal Controls
