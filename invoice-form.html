@@ -10,7 +10,6 @@
         input { width: 95%; border: 1px solid #eee; padding: 5px; outline: none; }
         input:focus { border-color: #3498db; }
         
-        /* Updated Total Box Styles */
         .total-container { margin-top: 20px; text-align: right; font-weight: bold; }
         .total-row { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 5px; font-size: 1.1em; }
         .grand-total-row { font-size: 1.6em; color: #2e7d32; border-top: 2px solid #2e7d32; display: inline-block; padding-top: 5px; min-width: 250px; }
@@ -76,7 +75,7 @@
     <button class="btn-gen" onclick="submitInvoice()">Generate & Save Invoice</button>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
+        const API_URL = "YOUR_NEW_DEPLOYMENT_URL";
         const user = JSON.parse(localStorage.getItem("user"));
         let taxPercent = 0;
 
@@ -84,32 +83,23 @@
             document.getElementById("display-date").innerText = new Date().toLocaleDateString();
             addNewRow(); 
             
-            if (!user || !user.id) {
-                alert("Session expired. Please login again.");
-                return;
-            }
+            if (!user || !user.id) return alert("Session expired.");
 
-            // Fetch ID and Settings (Tax/Currency)
             try {
-                // 1. Get Next Invoice ID
+                // Fetch ID
                 const idRes = await fetch(`${API_URL}?action=getNextId&userId=${encodeURIComponent(user.id)}`);
                 const idData = await idRes.json();
                 document.getElementById("display-inv-id").innerText = idData.nextId;
 
-                // 2. Get Tax and Currency Settings
+                // Fetch Settings
                 const setRes = await fetch(`${API_URL}?action=getSettings&id=${user.id}`);
                 const setData = await setRes.json();
                 if(setData.status === "Success") {
                     taxPercent = parseFloat(setData.taxRate) || 0;
                     document.getElementById("tax-rate-display").innerText = taxPercent;
-                    
-                    const symbols = document.querySelectorAll(".curr-symbol");
-                    symbols.forEach(s => s.innerText = setData.currSymbol || "");
+                    document.querySelectorAll(".curr-symbol").forEach(s => s.innerText = setData.currSymbol || "");
                 }
-            } catch (e) {
-                console.error("Setup Error:", e);
-                document.getElementById("display-inv-id").innerText = "INV-1001";
-            }
+            } catch (e) { document.getElementById("display-inv-id").innerText = "INV-1001"; }
         };
 
         function addNewRow() {
@@ -127,15 +117,11 @@
 
         function checkAutoRow(input) {
             const rows = document.querySelectorAll("#item-body tr");
-            const lastRow = rows[rows.length - 1];
-            if (input.parentElement.parentElement === lastRow && input.value > 0) {
-                addNewRow();
-            }
+            if (input.parentElement.parentElement === rows[rows.length - 1] && input.value > 0) addNewRow();
         }
 
         function removeRow(btn) {
-            const rows = document.querySelectorAll("#item-body tr");
-            if (rows.length > 1) {
+            if (document.querySelectorAll("#item-body tr").length > 1) {
                 btn.parentElement.parentElement.remove();
                 calculate();
             }
@@ -144,30 +130,22 @@
         function calculate() {
             let subtotal = 0;
             document.querySelectorAll("#item-body tr").forEach(row => {
-                const q = row.querySelector(".row-qty").value || 0;
-                const p = row.querySelector(".row-price").value || 0;
-                const amt = q * p;
+                const amt = (row.querySelector(".row-qty").value || 0) * (row.querySelector(".row-price").value || 0);
                 row.querySelector(".row-amt").innerText = amt.toFixed(2);
                 subtotal += amt;
             });
-
             const taxTotal = (subtotal * taxPercent) / 100;
-            const grandTotal = subtotal + taxTotal;
-
             document.getElementById("sub-total").innerText = subtotal.toFixed(2);
             document.getElementById("tax-amount").innerText = taxTotal.toFixed(2);
-            document.getElementById("grand-total").innerText = grandTotal.toFixed(2);
+            document.getElementById("grand-total").innerText = (subtotal + taxTotal).toFixed(2);
         }
 
-      async function submitInvoice() {
-            const btn = document.querySelector(".btn-gen");
-            const invId = document.getElementById("display-inv-id").innerText;
+        async function submitInvoice() {
             const client = document.getElementById("client-name").value;
-            const phone = document.getElementById("client-phone").value;
             if (!client) return alert("Please enter Client Name");
 
-            btn.disabled = true;
-            btn.innerText = "Saving...";
+            const btn = document.querySelector(".btn-gen");
+            btn.disabled = true; btn.innerText = "Saving...";
 
             const items = [];
             document.querySelectorAll("#item-body tr").forEach(row => {
@@ -184,13 +162,12 @@
 
             const payload = {
                 action: "saveInvoice",
-                invoiceId: invId,
+                invoiceId: document.getElementById("display-inv-id").innerText,
                 userId: user.id,
                 clientName: client,
-                clientPhone: phone,
+                clientPhone: document.getElementById("client-phone").value,
                 date: document.getElementById("display-date").innerText,
                 subtotal: document.getElementById("sub-total").innerText,
-                taxRate: taxPercent,
                 taxAmount: document.getElementById("tax-amount").innerText,
                 total: document.getElementById("grand-total").innerText,
                 items: items
@@ -198,13 +175,12 @@
 
             try {
                 await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
-                alert("✅ Invoice " + invId + " Saved!");
+                alert("✅ Invoice Saved!");
                 window.print();
                 window.location.reload(); 
             } catch (err) {
                 alert("Error saving invoice.");
-                btn.disabled = false;
-                btn.innerText = "Generate & Save Invoice";
+                btn.disabled = false; btn.innerText = "Generate & Save Invoice";
             }
         }
     </script>
