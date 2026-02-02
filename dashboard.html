@@ -160,15 +160,10 @@
         }
     }
 
-  async function savePassword() {
+async function savePassword() {
     const oldPass = document.getElementById("oldPass").value;
     const newPass = document.getElementById("newPass").value;
     const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!oldPass || !newPass) {
-        alert("Please fill in both fields.");
-        return;
-    }
 
     try {
         const response = await fetch(API_URL, {
@@ -181,23 +176,18 @@
             })
         });
 
-        const result = await response.text(); // Handling as text to avoid JSON parse errors
+        const result = await response.text(); // We read as text
 
         if (result.trim() === "Success") {
             alert("✅ Password updated successfully!");
             document.getElementById("passModal").classList.add("hidden");
-            // Clear the inputs
-            document.getElementById("oldPass").value = "";
-            document.getElementById("newPass").value = "";
         } else if (result.trim() === "WrongPassword") {
             alert("❌ The old password you entered is incorrect.");
         } else {
             alert("❌ Server Error: " + result);
         }
-
     } catch (err) {
-        console.error("Fetch Error:", err);
-        alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
+        alert("❌ Error reaching server. Check your connection.");
     }
 }
     function showSection(id) {
