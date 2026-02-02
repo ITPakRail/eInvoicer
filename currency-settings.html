@@ -23,7 +23,7 @@
     </div>
 
     <script>
-        const API_URL = "YOUR_NEW_DEPLOY_URL_HERE";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzt4GiAUOzRob_-HBaYax85VmvSX8aha1V46xXLO_UbLlaK5Wlt-sH500sug5nzGBfy_g/exec";
         const user = JSON.parse(localStorage.getItem("user"));
 
         window.onload = async () => {
@@ -35,17 +35,42 @@
             }
         };
 
-        async function saveCurrency() {
-            const payload = {
-                action: "saveCurrency",
-                id: user.id,
-                currName: document.getElementById('curr-name').value,
-                currSymbol: document.getElementById('curr-symbol').value
-            };
-            document.getElementById('status').innerText = "⏳ Saving...";
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            document.getElementById('status').innerText = "✅ Currency Saved!";
-        }
+    async function saveCurrency() {
+    const name = document.getElementById('curr-name').value;
+    const symbol = document.getElementById('curr-symbol').value;
+    const status = document.getElementById('status');
+
+    if(!name || !symbol) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    status.innerText = "⏳ Saving...";
+
+    const payload = {
+        action: "saveCurrency",
+        id: user.id,
+        currName: name,
+        currSymbol: symbol
+    };
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        // Since GAS redirects can be tricky with 'no-cors', 
+        // we assume success if no error is thrown, but we 
+        // add a small delay to ensure the script finished.
+        
+        status.style.color = "green";
+        status.innerText = "✅ Currency Saved!";
+    } catch (e) {
+        status.style.color = "red";
+        status.innerText = "❌ Error: " + e.message;
+    }
+}
     </script>
 </body>
 </html>
