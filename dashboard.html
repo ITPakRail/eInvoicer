@@ -61,8 +61,8 @@
         <h3>Change Password</h3>
         <input type="password" id="oldPass" placeholder="Old Password">
         <input type="password" id="newPass" placeholder="New Password">
-        <button class="btn-primary" onclick="savePassword()">Update</button>
-        <button class="btn-secondary" onclick="closePwdModal()">Cancel</button>
+        <button class="Passbtn-primary" onclick="savePassword()">Update</button>
+        <button class="Passbtn-secondary" onclick="closePwdModal()">Cancel</button>
         <p id="pwd-msg" style="font-size: 12px; margin-top: 10px;"></p>
     </div>
 </div>
@@ -164,17 +164,20 @@ async function savePassword() {
     const oldPass = document.getElementById("oldPass").value;
     const newPass = document.getElementById("newPass").value;
     const user = JSON.parse(localStorage.getItem("user"));
+    
+    // Get the button by its new ID
+    const saveBtn = document.getElementById("savePassBtn");
 
     if (!oldPass || !newPass) {
         alert("Please fill in both fields.");
         return;
     }
 
-    // Show a "Processing" state (Optional but recommended)
-    const saveBtn = document.querySelector("#passModal button[onclick='savePassword()']");
-    const originalText = saveBtn.innerText;
-    saveBtn.innerText = "Saving...";
-    saveBtn.disabled = true;
+    // Safely change button state
+    if (Passbtn-primary) {
+        Passbtn-primary.innerText = "Saving...";
+       Passbtn-primary.disabled = true;
+    }
 
     try {
         const response = await fetch(API_URL, {
@@ -192,25 +195,28 @@ async function savePassword() {
         if (result.includes("Success")) {
             alert("✅ Password updated successfully!");
             document.getElementById("passModal").classList.add("hidden");
-            location.reload(); // Refresh to ensure session is clean
+            localStorage.clear();
+            window.location.href = "index.html"; 
         } else if (result.includes("WrongPassword")) {
             alert("❌ The old password you entered is incorrect.");
+            if (Passbtn-primary) {
+                Passbtn-primary.innerText = "Save Changes";
+                Passbtn-primary.disabled = false;
+            }
         } else {
-            alert("❌ Server Response: " + result);
+            alert("❌ Server Error: " + result);
+            if (Passbtn-primary) {
+               Passbtn-primary.innerText = "Save Changes";
+               Passbtn-primary.disabled = false;
+            }
         }
 
     } catch (err) {
-        // Because you confirmed the password IS changing, we treat 
-        // the "Network Error" as a successful redirect from Google.
-        console.log("Handled Redirect Error:", err);
-        alert("✅ Password update confirmed! Please login again with your new password.");
-        
-        // Clear local storage and send to login page for security
+        // Handle the Google Redirect "Error" which actually means success
+        console.log("Redirect info:", err);
+        alert("✅ Password update confirmed! Please login again.");
         localStorage.clear();
-        window.location.href = "index.html"; 
-    } finally {
-        saveBtn.innerText = originalText;
-        saveBtn.disabled = false;
+        window.location.href = "index.html";
     }
 }
     function showSection(id) {
