@@ -35,7 +35,8 @@
    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
     <div style="flex: 2;">
         <label><strong>Client Name:</strong></label>
-        <input type="text" id="client-name" placeholder="Client Name" style="width: 100%; padding: 8px;">
+        <input type="text" id="client-name" list="client-list" placeholder="Select or Type Client Name" style="width: 100%; padding: 8px;" onchange="autoFillClient(this.value)">
+        <datalist id="client-list"></datalist>
     </div>
     <div style="flex: 1;">
         <label><strong>Phone (Optional):</strong></label>
@@ -78,6 +79,7 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
         const user = JSON.parse(localStorage.getItem("user"));
         let taxPercent = 0;
+        let clientsArray = []; // To store fetched client data for autofill
 
         window.onload = async () => {
             document.getElementById("display-date").innerText = new Date().toLocaleDateString();
@@ -99,8 +101,27 @@
                     document.getElementById("tax-rate-display").innerText = taxPercent;
                     document.querySelectorAll(".curr-symbol").forEach(s => s.innerText = setData.currSymbol || "");
                 }
+
+                // NEW: Fetch Clients for the dropdown
+                const clientRes = await fetch(`${API_URL}?action=getClients&userId=${user.id}`);
+                clientsArray = await clientRes.json();
+                const dataList = document.getElementById("client-list");
+                clientsArray.forEach(c => {
+                    const option = document.createElement("option");
+                    option.value = c.name;
+                    dataList.appendChild(option);
+                });
+
             } catch (e) { document.getElementById("display-inv-id").innerText = "INV-1001"; }
         };
+
+        // NEW: Auto-fill phone when client is selected from list
+        function autoFillClient(val) {
+            const found = clientsArray.find(c => c.name === val);
+            if (found) {
+                document.getElementById("client-phone").value = found.phone || "";
+            }
+        }
 
         function addNewRow() {
             const tbody = document.getElementById("item-body");
