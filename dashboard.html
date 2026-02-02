@@ -95,6 +95,7 @@
       </div>
 
     <ul>
+    <li onclick="goToDashboard()">🏠 Dashboard</li>
      <li onclick="showSection('create')">➕ Create Invoice</li>
      <li onclick="showSection('view-all')">📄 View All Invoices</li>
      <li onclick="showSection('update')">✏️ Edit or Delete</li>
@@ -252,7 +253,19 @@
             logout();
         }
     }
+
+    function goToDashboard() {
+    // Hide the iframe container
+    document.getElementById('module-container').classList.add('hidden');
+    // Clear the frame src so it doesn't stay loaded in the background
+    document.getElementById('content-frame').src = "";
+    // Show the statistics and welcome message
+    document.getElementById('welcome-msg').classList.remove('hidden');
     
+    // Refresh stats to ensure they are up to date
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) loadDashboardStats(user.id);
+}
     function showSection(id) {
         document.getElementById('welcome-msg').classList.add('hidden');
         document.getElementById('module-container').classList.remove('hidden');
