@@ -160,7 +160,7 @@
         }
     }
 
-   async function savePassword() {
+  async function savePassword() {
     const oldPass = document.getElementById("oldPass").value;
     const newPass = document.getElementById("newPass").value;
     const user = JSON.parse(localStorage.getItem("user"));
@@ -181,34 +181,22 @@
             })
         });
 
-        // Get the response text first
-        const text = await response.text();
-        let result;
+        const result = await response.text(); // Handling as text to avoid JSON parse errors
 
-        try {
-            // Try to parse it as JSON
-            result = JSON.parse(text);
-        } catch (e) {
-            // If it's just the word "Success" (plain text)
-            if (text.trim() === "Success") {
-                result = { status: "Success", message: "Password updated successfully!" };
-            } else {
-                throw new Error("Invalid response from server");
-            }
-        }
-
-        if (result.status === "Success") {
-            alert("✅ " + result.message);
+        if (result.trim() === "Success") {
+            alert("✅ Password updated successfully!");
             document.getElementById("passModal").classList.add("hidden");
-            // Clear fields
+            // Clear the inputs
             document.getElementById("oldPass").value = "";
             document.getElementById("newPass").value = "";
+        } else if (result.trim() === "WrongPassword") {
+            alert("❌ The old password you entered is incorrect.");
         } else {
-            alert("❌ " + result.message);
+            alert("❌ Server Error: " + result);
         }
 
     } catch (err) {
-        console.error("Error details:", err);
+        console.error("Fetch Error:", err);
         alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
     }
 }
