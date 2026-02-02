@@ -88,6 +88,11 @@
             <li onclick="showSection('update')">✏️ Edit or Delete</li>
             <li onclick="showSection('report')">📊 Reports</li>
             <li onclick="toggleSettings()">⚙️ Settings ▾</li>
+            <li onclick="toggleMenu('clients-menu')">👥 Clients ▾</li>
+<ul id="clients-menu" class="submenu">
+    <li onclick="showSection('add-client')">👤 Add Client</li>
+    <li onclick="showSection('view-clients')">📋 Client List</li>
+</ul>
             <ul id="settings-menu" class="submenu">
                 <li onclick="showSection('biz-settings')">🏢 Business Setting</li>
                 <li onclick="showSection('tax-settings')">💰 Tax Setting</li>
@@ -119,9 +124,17 @@
 
     document.getElementById('year').innerText = new Date().getFullYear();
 
-    function toggleSettings() {
-        document.getElementById('settings-menu').classList.toggle('open');
-    }
+ //   function toggleSettings() {
+   //     document.getElementById('settings-menu').classList.toggle('open');
+    //}
+    function toggleMenu(id) {
+    // Close other submenus if they are open (optional, for a cleaner look)
+    document.querySelectorAll('.submenu').forEach(menu => {
+        if(menu.id !== id) menu.classList.remove('open');
+    });
+    // Toggle the clicked menu
+    document.getElementById(id).classList.toggle('open');
+}
 
     // Modal Controls
     function openPwdModal() { document.getElementById('pwd-modal').classList.remove('hidden'); }
@@ -232,6 +245,7 @@ async function savePassword() {
             'view-all': 'view-all.html',
             'update': 'update.html',
             'report': 'reports.html',
+            'add-client': 'add-client.html',    // New
             'biz-settings': 'business-settings.html',
             'tax-settings': 'tax-settings.html',
             'currency-settings': 'currency-settings.html'
