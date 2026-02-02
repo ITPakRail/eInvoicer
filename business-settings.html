@@ -90,55 +90,36 @@
     }
 
     // 3. Update Business Info
-    async function updateBusiness() {
-        const user = JSON.parse(localStorage.getItem("user"));
-        const bizName = document.getElementById("biz-name").value;
-        const bizPhone = document.getElementById("biz-phone").value;
-        const status = document.getElementById("status-msg");
-
-        if (!bizName || !bizPhone) {
-            alert("Please fill in Business Name and Phone.");
-            return;
-        }
-
-        status.className = "loading";
-        status.innerText = "⏳ Updating business info...";
-
-        const payload = {
-            action: "updateBusiness",
-            id: user.id,
-            business: bizName,
-            phone: bizPhone,
-            logo: base64Logo
-        };
-
-        try {
-            // Using POST if your script supports it, or GET with encoded params
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Depending on your Apps Script setup
-                cache: 'no-cache',
-                body: JSON.stringify(payload)
-            });
-
-            // Since 'no-cors' doesn't return a body, we simulate success 
-            // and update local storage so the dashboard reflects changes
-            user.business = bizName;
-            user.phone = bizPhone;
-            user.logo = base64Logo;
-            localStorage.setItem("user", JSON.stringify(user));
-
-            status.className = "done";
-            status.innerText = "✅ Business info updated successfully!";
-            
-            // Tell parent window to refresh the logo/name in the header/sidebar
-            window.parent.location.reload();
-
-        } catch (error) {
-            status.innerText = "❌ Error: " + error.message;
-        }
+  /**
+ * Updates Business Name, Phone, and Logo Base64
+ * Column E (5) = Business Name
+ * Column F (6) = Phone
+ * Column G (7) = Logo
+ */
+function updateBusinessInfo(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(USER_SHEET_NAME);
+  const values = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < values.length; i++) {
+    // values[i][0] is Column A (ID)
+    if (values[i][0].toString() === data.id.toString()) {
+      
+      // .getRange(row, column)
+      // row is i + 1 because arrays start at 0 but sheets start at 1
+      
+      sheet.getRange(i + 1, 5).setValue(data.business); // Column E: Business Name
+      sheet.getRange(i + 1, 6).setValue(data.phone);    // Column F: Phone
+      
+      if (data.logo) {
+        sheet.getRange(i + 1, 7).setValue(data.logo);  // Column G: Logo (Base64)
+      }
+      
+      return { status: "Success", message: "Business info updated correctly" };
     }
-
+  }
+  return { status: "Error", message: "User not found" };
+}
     function resetForm() {
         window.location.reload();
     }
