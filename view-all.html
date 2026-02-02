@@ -186,48 +186,5 @@
             printWin.document.close();
         }
     </script>
-
-    <script>
-    const MAIN_API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec"; // The URL of your Main API
-
-    async function savePassword() {
-        const oldPass = document.getElementById("oldPass").value;
-        const newPass = document.getElementById("newPass").value;
-        const user = JSON.parse(localStorage.getItem("user"));
-
-        if (!oldPass || !newPass) {
-            alert("Please fill in both fields.");
-            return;
-        }
-
-        try {
-            // We use POST because we are sending sensitive data (passwords)
-            const response = await fetch(MAIN_API_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "changePassword",
-                    userId: user.id,
-                    oldPass: oldPass,
-                    newPass: newPass
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.status === "Success") {
-                alert("✅ " + result.message);
-                document.getElementById("passModal").classList.add("hidden"); // Close modal
-                // Clear the fields
-                document.getElementById("oldPass").value = "";
-                document.getElementById("newPass").value = "";
-            } else {
-                alert("❌ " + result.message);
-            }
-        } catch (err) {
-            console.error(err);
-            alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
-        }
-    }
-</script>
 </body>
 </html>
