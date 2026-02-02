@@ -160,45 +160,58 @@
         }
     }
 
-    async function savePassword() {
-        const oldPass = document.getElementById("oldPass").value;
-        const newPass = document.getElementById("newPass").value;
-        const user = JSON.parse(localStorage.getItem("user"));
+   async function savePassword() {
+    const oldPass = document.getElementById("oldPass").value;
+    const newPass = document.getElementById("newPass").value;
+    const user = JSON.parse(localStorage.getItem("user"));
 
-        if (!oldPass || !newPass) {
-            alert("Please fill in both fields.");
-            return;
-        }
-
-        try {
-            // We use POST because we are sending sensitive data (passwords)
-            const response = await fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "changePassword",
-                    userId: user.id,
-                    oldPass: oldPass,
-                    newPass: newPass
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.status === "Success") {
-                alert("✅ " + result.message);
-                document.getElementById("passModal").classList.add("hidden"); // Close modal
-                // Clear the fields
-                document.getElementById("oldPass").value = "";
-                document.getElementById("newPass").value = "";
-            } else {
-                alert("❌ " + result.message);
-            }
-        } catch (err) {
-            console.error(err);
-            alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
-        }
+    if (!oldPass || !newPass) {
+        alert("Please fill in both fields.");
+        return;
     }
 
+    try {
+        const response = await fetch(MAIN_API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "changePassword",
+                userId: user.id,
+                oldPass: oldPass,
+                newPass: newPass
+            })
+        });
+
+        // Get the response text first
+        const text = await response.text();
+        let result;
+
+        try {
+            // Try to parse it as JSON
+            result = JSON.parse(text);
+        } catch (e) {
+            // If it's just the word "Success" (plain text)
+            if (text.trim() === "Success") {
+                result = { status: "Success", message: "Password updated successfully!" };
+            } else {
+                throw new Error("Invalid response from server");
+            }
+        }
+
+        if (result.status === "Success") {
+            alert("✅ " + result.message);
+            document.getElementById("passModal").classList.add("hidden");
+            // Clear fields
+            document.getElementById("oldPass").value = "";
+            document.getElementById("newPass").value = "";
+        } else {
+            alert("❌ " + result.message);
+        }
+
+    } catch (err) {
+        console.error("Error details:", err);
+        alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
+    }
+}
     function showSection(id) {
         document.getElementById('welcome-msg').classList.add('hidden');
         document.getElementById('module-container').classList.remove('hidden');
