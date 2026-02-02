@@ -160,23 +160,43 @@
         }
     }
 
-    async function updatePassword() {
-        const oldP = document.getElementById('old_pwd').value;
-        const newP = document.getElementById('new_pwd').value;
-        const user = JSON.parse(localStorage.getItem('user'));
-        const pMsg = document.getElementById('pwd-msg');
+    async function savePassword() {
+        const oldPass = document.getElementById("oldPass").value;
+        const newPass = document.getElementById("newPass").value;
+        const user = JSON.parse(localStorage.getItem("user"));
 
-        if(!oldP || !newP) { alert("Please fill both fields"); return; }
-        
-        pMsg.innerText = "Updating...";
+        if (!oldPass || !newPass) {
+            alert("Please fill in both fields.");
+            return;
+        }
+
         try {
-            const res = await fetch(`${API_URL}?action=updatePassword&id=${user.id}&oldPass=${oldP}&newPass=${newP}`);
-            const data = await res.json();
-            if(data.status === "Success") {
-                alert("Password Updated successfully!");
-                closePwdModal();
-            } else { pMsg.innerText = "❌ " + data.message; }
-        } catch (e) { pMsg.innerText = "❌ Error reaching server"; }
+            // We use POST because we are sending sensitive data (passwords)
+            const response = await fetch(MAIN_API_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "changePassword",
+                    userId: user.id,
+                    oldPass: oldPass,
+                    newPass: newPass
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.status === "Success") {
+                alert("✅ " + result.message);
+                document.getElementById("passModal").classList.add("hidden"); // Close modal
+                // Clear the fields
+                document.getElementById("oldPass").value = "";
+                document.getElementById("newPass").value = "";
+            } else {
+                alert("❌ " + result.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("❌ Error reaching server. Make sure you deployed your GAS as 'Anyone'.");
+        }
     }
 
     function showSection(id) {
