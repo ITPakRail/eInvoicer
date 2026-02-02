@@ -82,23 +82,25 @@
             <img id="user-logo" src="" alt="Business Logo">
         </div>
 
-        <ul>
-            <li onclick="showSection('create')">➕ Create Invoice</li>
-            <li onclick="showSection('view-all')">📄 View All Invoices</li>
-            <li onclick="showSection('update')">✏️ Edit or Delete</li>
-            <li onclick="showSection('report')">📊 Reports</li>
-            <li onclick="toggleMenu('clients-menu')">👥 Clients ▾</li>
-            <li onclick="toggleMenu('settings-menu')">⚙️ Settings ▾</li>
-<ul id="clients-menu" class="submenu">
-    <li onclick="showSection('add-client')">👤 Add Client</li>
-    <li onclick="showSection('view-clients')">📋 Client List</li>
+       <ul>
+    <li onclick="showSection('create')">➕ Create Invoice</li>
+    <li onclick="showSection('view-all')">📄 View All Invoices</li>
+    <li onclick="showSection('update')">✏️ Edit or Delete</li>
+    <li onclick="showSection('report')">📊 Reports</li>
+    
+    <li onclick="toggleMenu('clients-menu')">👥 Clients ▾</li>
+    <ul id="clients-menu" class="submenu">
+        <li onclick="showSection('add-client')">👤 Add Client</li>
+        <li onclick="showSection('view-clients')">📋 Client List</li>
+    </ul>
+
+    <li onclick="toggleMenu('settings-menu')">⚙️ Settings ▾</li>
+    <ul id="settings-menu" class="submenu">
+        <li onclick="showSection('biz-settings')">🏢 Business Setting</li>
+        <li onclick="showSection('tax-settings')">💰 Tax Setting</li>
+        <li onclick="showSection('currency-settings')">💱 Set Currency</li>
+    </ul>
 </ul>
-            <ul id="settings-menu" class="submenu">
-                <li onclick="showSection('biz-settings')">🏢 Business Setting</li>
-                <li onclick="showSection('tax-settings')">💰 Tax Setting</li>
-                <li onclick="showSection('currency-settings')">💱 Set Currency</li>
-            </ul>
-        </ul>
 
         <div class="sidebar-footer">
             <button class="btn-link" onclick="openPwdModal()">Change Password</button>
