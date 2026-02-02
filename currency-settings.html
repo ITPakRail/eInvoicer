@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .form-container { max-width: 450px; margin: auto; border: 1px solid #eee; padding: 25px; border-radius: 10px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Currency Settings</h2>
+        <label>Currency Name</label>
+        <input type="text" id="curr-name" placeholder="e.g. Pakistani Rupee">
+        <label>Symbol</label>
+        <input type="text" id="curr-symbol" placeholder="e.g. PKR or Rs.">
+        <button onclick="saveCurrency()">Save Currency</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const API_URL = "YOUR_NEW_DEPLOY_URL_HERE";
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        window.onload = async () => {
+            const res = await fetch(`${API_URL}?action=getSettings&id=${user.id}`);
+            const data = await res.json();
+            if(data.status === "Success") {
+                document.getElementById('curr-name').value = data.currName || "";
+                document.getElementById('curr-symbol').value = data.currSymbol || "";
+            }
+        };
+
+        async function saveCurrency() {
+            const payload = {
+                action: "saveCurrency",
+                id: user.id,
+                currName: document.getElementById('curr-name').value,
+                currSymbol: document.getElementById('curr-symbol').value
+            };
+            document.getElementById('status').innerText = "⏳ Saving...";
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            document.getElementById('status').innerText = "✅ Currency Saved!";
+        }
+    </script>
+</body>
+</html>
