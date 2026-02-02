@@ -95,20 +95,23 @@
             }
         }
 
-     async function handleShare(id, platform) {
+    async function handleShare(id, platform) {
     const { jsPDF } = window.jspdf;
     const inv = cachedInvoices.find(i => i.invoiceId === id);
     if (!inv) return;
 
-    // --- 1. DATA PREP ---
+    // --- 1. CLEAN UP DATA ---
     const items = JSON.parse(inv.items);
     let itemText = "";
     items.forEach(item => {
         itemText += `• ${item.description} (Qty: ${item.qty} x ${item.price}) = ${parseFloat(item.amount).toFixed(2)}\n`;
     });
 
+    // Format Date to be readable (e.g., 2026-02-01)
+    const displayDate = inv.date.includes('T') ? inv.date.split('T')[0] : inv.date;
+
     const fullMessage = `📄 *INVOICE: ${inv.invoiceId}*\n` +
-                        `📅 Date: ${inv.date}\n` +
+                        `📅 Date: ${displayDate}\n` +
                         `👤 Client: ${inv.clientName}\n\n` +
                         `*Items:*\n${itemText}\n` +
                         `────────────────\n` +
@@ -120,21 +123,23 @@
     // --- 2. EXECUTE WHATSAPP / MAIL LINK ---
     const encodedMsg = encodeURIComponent(fullMessage);
     if (platform === 'wa') {
-        // FIX: Force to string and check for null to prevent .replace() errors
         const rawPhone = String(inv.clientPhone || "");
         const cleanPhone = rawPhone.replace(/\D/g, ''); 
-        window.open(`https://wa.me/${cleanPhone}?text=${encodedMsg}`, '_blank');
+        
+        // Use the API link instead of wa.me for better reliability
+        const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
+        window.open(waUrl, '_blank');
     } else {
         window.location.href = `mailto:?subject=Invoice ${inv.invoiceId}&body=${encodedMsg}`;
     }
 
-    // --- 3. GENERATE PDF ---
+    // --- 3. GENERATE PDF (Same as before) ---
     const doc = new jsPDF();
     doc.setFontSize(20);
     doc.text(user.business, 14, 22);
     doc.setFontSize(10);
     doc.text(`Invoice ID: ${inv.invoiceId}`, 14, 30);
-    doc.text(`Date: ${inv.date}`, 14, 35);
+    doc.text(`Date: ${displayDate}`, 14, 35);
     doc.text(`Client: ${inv.clientName}`, 14, 45);
 
     const tableData = items.map(item => [
@@ -144,11 +149,7 @@
         parseFloat(item.amount).toFixed(2)
     ]);
 
-    doc.autoTable({ 
-        startY: 55, 
-        head: [['Description', 'Qty', 'Price', 'Amount']], 
-        body: tableData 
-    });
+    doc.autoTable({ startY: 55, head: [['Description', 'Qty', 'Price', 'Amount']], body: tableData });
     
     let finalY = doc.lastAutoTable.finalY + 10;
     doc.text(`Sub-total: ${parseFloat(inv.subtotal).toFixed(2)}`, 140, finalY);
