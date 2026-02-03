@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Reports</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: white; color: #2c3e50; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; }
+        .chart-container { position: relative; height: 40vh; width: 80vw; margin-bottom: 40px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-top: 20px; }
+        .stat-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #eee; }
+        .stat-box h3 { margin: 0; color: #7f8c8d; font-size: 0.9em; }
+        .stat-box p { margin: 5px 0 0 0; font-size: 1.4em; font-weight: bold; color: #2c3e50; }
+        #loader { text-align: center; padding: 50px; font-size: 1.2em; color: #3498db; }
+    </style>
+</head>
+<body>
+
+    <div class="report-header">
+        <h2>📈 Sales Performance Report</h2>
+        <button onclick="window.print()" style="padding: 8px 15px; cursor: pointer; background: #34495e; color: white; border: none; border-radius: 4px;">Print Report</button>
+    </div>
+
+    <div id="loader">Gathering data and generating charts...</div>
+
+    <div id="report-content" class="hidden" style="display:none;">
+        <div class="chart-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <h3>Highest Month</h3>
+                <p id="high-month">-</p>
+            </div>
+            <div class="stat-box">
+                <h3>Avg. Invoice Value</h3>
+                <p id="avg-val">0.00</p>
+            </div>
+            <div class="stat-box">
+                <h3>Total Tax Collected</h3>
+                <p id="total-tax">0.00</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwKgib802NVM4Mn31in9KhfoMHPA9b2tubCMLq7lDrCmthRNyryOiPaAT5FBrnL_qto/exec";
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        window.onload = async () => {
+            if (!user) return;
+            try {
+                const response = await fetch(`${API_URL}?action=getInvoices&userId=${user.id}`);
+                const invoices = await response.json();
+                processData(invoices);
+            } catch (e) {
+                document.getElementById("loader").innerText = "❌ Error loading report data.";
+            }
+        };
+
+        function processData(invoices) {
+            const monthlyData = {};
+            let totalTax = 0;
+            let totalAmt = 0;
+
+            invoices.forEach(inv => {
+                // Assuming date format is DD/MM/YYYY or similar
+                const parts = inv.date.split('/');
+                const monthYear = parts.length > 2 ? `${parts[1]}/${parts[2]}` : "Unknown";
+                
+                monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(inv.total);
+                totalTax += parseFloat(inv.taxAmount) || 0;
+                totalAmt += parseFloat(inv.total) || 0;
+            });
+
+            renderChart(monthlyData);
+
+            // Update Stats
+            const months = Object.keys(monthlyData);
+            const values = Object.values(monthlyData);
+            const maxVal = Math.max(...values);
+            const topMonth = months[values.indexOf(maxVal)];
+
+            document.getElementById("high-month").innerText = topMonth || "N/A";
+            document.getElementById("avg-val").innerText = (totalAmt / (invoices.length || 1)).toFixed(2);
+            document.getElementById("total-tax").innerText = totalTax.toFixed(2);
+
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("report-content").style.display = "block";
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Monthly Sales Amount',
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
