@@ -61,44 +61,64 @@
             }
         };
 
-        function processData(invoices) {
-            const monthlyData = {};
-            let totalTax = 0;
-            let totalAmt = 0;
+     function processData(invoices) {
+    const monthlyData = {};
+    let totalTax = 0;
+    let totalAmt = 0;
 
-            invoices.forEach(inv => {
+    invoices.forEach(inv => {
         let monthYear = "Unknown";
         
         if (inv.date) {
-            // Converts "2023-11-25" or "25/11/2023" into a standard Date object
-            const d = new Date(inv.date);
+            // Force the date into a valid JS Date object
+            let d = new Date(inv.date);
+
+            // If it's a string like "05/11/2023", Date() might fail. 
+            // We fix that here by swapping Day and Month if needed.
+            if (isNaN(d.getTime()) && typeof inv.date === 'string') {
+                const parts = inv.date.split(/[/ -]/); // Split by /, space, or -
+                if (parts.length >= 3) {
+                    // Tries to build YYYY-MM-DD format which is safest
+                    d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                }
+            }
+
             if (!isNaN(d.getTime())) {
                 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 monthYear = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
             }
         }
         
-        monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(inv.total);
-        totalTax += parseFloat(inv.taxAmount) || 0;
-        totalAmt += parseFloat(inv.total) || 0;
+        // Accumulate data
+        monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(inv.total || 0);
+        totalTax += parseFloat(inv.taxAmount || 0);
+        totalAmt += parseFloat(inv.total || 0);
     });
 
-            renderChart(monthlyData);
+    // Remove "Unknown" from the month labels if we want a clean chart
+    const filteredMonths = Object.keys(monthlyData).filter(m => m !== "Unknown");
+    
+    // Sort months chronologically if possible
+    filteredMonths.sort((a, b) => new Date(a) - new Date(b));
 
-            // Update Stats
-            const months = Object.keys(monthlyData);
-            const values = Object.values(monthlyData);
-            const maxVal = Math.max(...values);
-            const topMonth = months[values.indexOf(maxVal)];
+    renderChart(monthlyData);
 
-            document.getElementById("high-month").innerText = topMonth || "N/A";
-            document.getElementById("avg-val").innerText = (totalAmt / (invoices.length || 1)).toFixed(2);
-            document.getElementById("total-tax").innerText = totalTax.toFixed(2);
+    // Update Stats
+    const values = Object.values(monthlyData);
+    const months = Object.keys(monthlyData);
+    
+    if (values.length > 0) {
+        const maxVal = Math.max(...values);
+        const topMonth = months[values.indexOf(maxVal)];
+        document.getElementById("high-month").innerText = topMonth;
+    }
 
-            document.getElementById("loader").style.display = "none";
-            document.getElementById("report-content").style.display = "block";
-        }
+    document.getElementById("avg-val").innerText = (totalAmt / (invoices.length || 1)).toFixed(2);
+    document.getElementById("total-tax").innerText = totalTax.toFixed(2);
 
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("report-content").style.display = "block";
+}
         function renderChart(data) {
             const ctx = document.getElementById('salesChart').getContext('2d');
             new Chart(ctx, {
