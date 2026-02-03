@@ -67,14 +67,21 @@
             let totalAmt = 0;
 
             invoices.forEach(inv => {
-                // Assuming date format is DD/MM/YYYY or similar
-                const parts = inv.date.split('/');
-                const monthYear = parts.length > 2 ? `${parts[1]}/${parts[2]}` : "Unknown";
-                
-                monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(inv.total);
-                totalTax += parseFloat(inv.taxAmount) || 0;
-                totalAmt += parseFloat(inv.total) || 0;
-            });
+        let monthYear = "Unknown";
+        
+        if (inv.date) {
+            // Converts "2023-11-25" or "25/11/2023" into a standard Date object
+            const d = new Date(inv.date);
+            if (!isNaN(d.getTime())) {
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                monthYear = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+            }
+        }
+        
+        monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(inv.total);
+        totalTax += parseFloat(inv.taxAmount) || 0;
+        totalAmt += parseFloat(inv.total) || 0;
+    });
 
             renderChart(monthlyData);
 
